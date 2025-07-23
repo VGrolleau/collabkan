@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // à mettre dans ton .env
+}
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  role           Role      @default(COLLABORATOR)
+  kanbans        Kanban[]  @relation("UserKanbans")       // collaboration
+  ownedKanbans   Kanban[]  @relation("KanbanOwner")        // propriété
+  assignedCards  Card[]    @relation("CardAssignedToUser") // affectations
+  createdAt      DateTime  @default(now())
+}
+
+model Kanban {
+  id        String   @id @default(cuid())
+  name      String
+  owner     User     @relation("KanbanOwner", fields: [ownerId], references: [id])
+  ownerId   String
+  members   User[]   @relation("UserKanbans")
+  columns   Column[]
+  createdAt DateTime @default(now())
+}
+
+model Column {
+  id        String   @id @default(cuid())
+  title     String
+  order     Int
+  kanban    Kanban   @relation(fields: [kanbanId], references: [id])
+  kanbanId  String
+  cards     Card[]
+}
+
+model Card {
+  id        String   @id @default(cuid())
+  content   String
+  order     Int
+  column    Column   @relation(fields: [columnId], references: [id])
+  columnId  String
+  assigned  User?    @relation("CardAssignedToUser", fields: [assignedId], references: [id])
+  assignedId String?
+}
+
+enum Role {
+  ADMIN
+  COLLABORATOR
+}
