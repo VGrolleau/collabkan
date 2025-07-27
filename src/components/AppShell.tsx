@@ -9,9 +9,10 @@ const initialKanbans = [
     { id: 2, name: "Kanban 2", description: "Test 2" },
 ];
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+export default function AppShell() {
     const [kanbans] = useState(initialKanbans);
     const [selectedKanban, setSelectedKanban] = useState<typeof initialKanbans[0] | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     function handleSelectKanban(id: number) {
         const kanban = kanbans.find(k => k.id === id) || null;
@@ -20,7 +21,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     return (
         <>
-            <Sidebar kanbans={kanbans} onSelect={handleSelectKanban} />
+            <Sidebar kanbans={kanbans} onSelect={handleSelectKanban} onAddKanbanClick={() => setIsModalOpen(true)} />
             <main>
                 {selectedKanban ? (
                     <KanbanBoard kanban={selectedKanban} />

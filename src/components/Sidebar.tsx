@@ -1,21 +1,13 @@
-"use client";
-
-type Kanban = {
-    id: number;
-    name: string;
+type SidebarProps = {
+    kanbans: { id: number; name: string }[];
+    onSelect: (id: number) => void;
+    onAddKanbanClick: () => void;
 };
 
-export default function Sidebar({
-    kanbans,
-    onSelect,
-}: {
-    kanbans: Kanban[];
-    onSelect: (id: number) => void;
-}) {
+export default function Sidebar({ kanbans, onSelect, onAddKanbanClick }: SidebarProps) {
     return (
         <aside>
-            <h1>{`Collab'Kan`}</h1>
-            <h2>{`Mes collab' :`}</h2>
+            <h1>Liste de mes tableaux :</h1>
             <ul>
                 {kanbans.map((kanban) => (
                     <li key={kanban.id}>
@@ -23,7 +15,7 @@ export default function Sidebar({
                     </li>
                 ))}
             </ul>
-            <button>Ajouter un tableau</button>
+            <button onClick={onAddKanbanClick}>Ajouter un tableau</button>
         </aside>
     );
 }
