@@ -16,9 +16,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             name: data.title,
             description: data.description,
             columns: [
-                { id: 1, name: "À faire" },
-                { id: 2, name: "En cours" },
-                { id: 3, name: "Terminé" },
+                { id: 1, name: "À faire", cards: [{ id: Date.now() + 1, title: "Ma première carte" }] },
+                { id: 2, name: "En cours", cards: [] },
+                { id: 3, name: "Terminé", cards: [] },
             ],
         };
         setKanbans((prev) => [...prev, newKanban]);

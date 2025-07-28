@@ -69,6 +69,19 @@ body {
 .cards-list {
     margin-top: 1rem;
     min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px;
+    gap: 10px;
+}
+
+.cards-list button {
+    padding: 5px;
+}
+
+.addcard-div {
+    display: flex;
+    justify-content: space-around;
 }
 
 .add-col-btn {
