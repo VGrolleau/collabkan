@@ -36,18 +36,18 @@ body {
     max-width: 400px;
 }
 
-.kanban-header {
+.kanban-header-edit {
     margin-bottom: 1rem;
 }
 
-.kanban-header h2,
-.kanban-header p {
+.kanban-header-edit h2,
+.kanban-header-edit p {
     display: flex;
     align-items: center;
     gap: 0.5rem;
 }
 
-.kanban-header button {
+.kanban-header-edit button {
     background: none;
     border: none;
     cursor: pointer;

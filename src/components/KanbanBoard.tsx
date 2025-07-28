@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Kanban, Column, CardElement } from "../types";
 import { Card } from "./Card";
 import { CardModal } from "./CardModal";
+import KanbanHeaderEdit from "./KanbanHeaderEdit";
 
 type Props = {
     kanban: Kanban;
@@ -16,10 +17,6 @@ export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanI
     const [newColumnName, setNewColumnName] = useState("");
     const [newCardTitle, setNewCardTitle] = useState<Record<number, string>>({});
     const [selectedCard, setSelectedCard] = useState<CardElement | null>(null);
-    const [editingTitle, setEditingTitle] = useState(false);
-    const [editingDesc, setEditingDesc] = useState(false);
-    const [tempName, setTempName] = useState(kanban.name);
-    const [tempDesc, setTempDesc] = useState(kanban.description);
 
     const addColumn = () => {
         const name = prompt("Nom de la nouvelle colonne ?");
@@ -88,81 +85,7 @@ export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanI
 
     return (
         <section>
-            <div className="kanban-header">
-                {/* TITRE */}
-                {editingTitle ? (
-                    <div className="edit-group">
-                        <input
-                            value={tempName}
-                            onChange={(e) => setTempName(e.target.value)}
-                            autoFocus
-                        />
-                        <button
-                            onClick={() => {
-                                updateKanbanInfo({ name: tempName });
-                                setEditingTitle(false);
-                            }}
-                            title="Enregistrer"
-                        >
-                            💾
-                        </button>
-                        <button
-                            onClick={() => {
-                                setTempName(kanban.name);
-                                setEditingTitle(false);
-                            }}
-                            title="Annuler"
-                        >
-                            ✖️
-                        </button>
-                    </div>
-                ) : (
-                    <h2>
-                        {kanban.name}
-                        <button onClick={() => setEditingTitle(true)} title="Modifier le titre">
-                            ✏️
-                        </button>
-                    </h2>
-                )}
-
-                {/* DESCRIPTION */}
-                {editingDesc ? (
-                    <div className="edit-group">
-                        <textarea
-                            value={tempDesc}
-                            onChange={(e) => setTempDesc(e.target.value)}
-                            rows={3}
-                            autoFocus
-                        />
-                        <button
-                            onClick={() => {
-                                updateKanbanInfo({ description: tempDesc });
-                                setEditingDesc(false);
-                            }}
-                            title="Enregistrer"
-                        >
-                            💾
-                        </button>
-                        <button
-                            onClick={() => {
-                                setTempDesc(kanban.description);
-                                setEditingDesc(false);
-                            }}
-                            title="Annuler"
-                        >
-                            ✖️
-                        </button>
-                    </div>
-                ) : (
-                    <p>
-                        {kanban.description}
-                        <button onClick={() => setEditingDesc(true)} title="Modifier la description">
-                            ✏️
-                        </button>
-                    </p>
-                )}
-            </div>
-
+            <KanbanHeaderEdit kanban={kanban} updateKanbanInfo={updateKanbanInfo} />
 
             <div className="cols-section">
                 {kanban.columns.map((col) => (
