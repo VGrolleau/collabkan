@@ -2,28 +2,38 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CardElement, ChecklistItem } from "../types";
+import { CardElement, ChecklistItem, Column } from "../types";
 
 type Props = {
     card: CardElement;
+    kanbanColumns: Column[];
     onClose: () => void;
-    onSave: (cardId: number | string, updatedData: Partial<CardElement>) => void;
+    onSave: (
+        cardId: number | string,
+        updatedData: Partial<CardElement> & { columnId?: number }
+    ) => void;
     onDelete: (cardId: number | string) => void;
 };
 
-export function CardModal({ card, onClose, onSave, onDelete }: Props) {
+export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Props) {
     const [title, setTitle] = useState(card.title);
     const [description, setDescription] = useState(card.description || "");
     const [checklist, setChecklist] = useState<ChecklistItem[]>(card.checklist || []);
     const [newChecklistItem, setNewChecklistItem] = useState("");
     const [visibleSections, setVisibleSections] = useState<string[]>([]);
+    const [columnId, setColumnId] = useState<number | undefined>(undefined);
 
     useEffect(() => {
         const openSections: string[] = [];
         if (description) openSections.push("description");
         if (checklist.length > 0) openSections.push("checklist");
         setVisibleSections(openSections);
-    }, [checklist.length, description]);
+
+        const currentCol = kanbanColumns.find(col =>
+            col.cards.some(c => c.id === card.id)
+        );
+        setColumnId(currentCol?.id);
+    }, [card, kanbanColumns, checklist.length, description]);
 
     const showSection = (section: string) => {
         if (!visibleSections.includes(section)) {
@@ -61,10 +71,16 @@ export function CardModal({ card, onClose, onSave, onDelete }: Props) {
         : 0;
 
     const handleSave = () => {
+        if (!title.trim()) {
+            alert("Le titre ne peut pas être vide");
+            return;
+        }
+
         onSave(card.id, {
             title,
             description,
             checklist,
+            columnId,
         });
         onClose();
     };
@@ -80,6 +96,23 @@ export function CardModal({ card, onClose, onSave, onDelete }: Props) {
                         style={{ fontSize: "1.5rem", fontWeight: "bold", flex: 1 }}
                     />
                     <button onClick={() => onDelete(card.id)}>🗑️ Supprimer</button>
+                </div>
+
+                <div style={{ marginTop: "1rem" }}>
+                    <label>
+                        Colonne
+                        <select
+                            value={columnId}
+                            onChange={e => setColumnId(Number(e.target.value))}
+                            style={{ marginLeft: "0.5rem" }}
+                        >
+                            {kanbanColumns.map(col => (
+                                <option key={col.id} value={col.id}>
+                                    {col.name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
                 </div>
 
                 <div className="card-options" style={{ marginTop: "1rem" }}>
