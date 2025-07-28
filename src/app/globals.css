@@ -36,6 +36,46 @@ body {
     max-width: 400px;
 }
 
+.kanban-header {
+    margin-bottom: 1rem;
+}
+
+.kanban-header h2,
+.kanban-header p {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.kanban-header button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.edit-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.edit-group input,
+.edit-group textarea {
+    font-size: 1rem;
+    padding: 0.3rem;
+    flex: 1;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+}
+
+.edit-group button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+}
+
 .cols-section {
     display: flex;
     gap: 1rem;
