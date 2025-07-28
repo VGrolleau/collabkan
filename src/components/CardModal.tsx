@@ -1,75 +1,179 @@
 // src/components/CardModal.tsx
 "use client";
 
-import { useState } from "react";
-import { CardElement } from "../types";
+import { useState, useEffect } from "react";
+import { CardElement, ChecklistItem } from "../types";
 
 type Props = {
     card: CardElement;
     onClose: () => void;
-    onSave?: (updatedCard: CardElement) => void;
+    onSave: (cardId: number | string, updatedData: Partial<CardElement>) => void;
+    onDelete: (cardId: number | string) => void;
 };
 
-export function CardModal({ card, onClose, onSave }: Props) {
+export function CardModal({ card, onClose, onSave, onDelete }: Props) {
     const [title, setTitle] = useState(card.title);
     const [description, setDescription] = useState(card.description || "");
+    const [checklist, setChecklist] = useState<ChecklistItem[]>(card.checklist || []);
+    const [newChecklistItem, setNewChecklistItem] = useState("");
+    const [visibleSections, setVisibleSections] = useState<string[]>([]);
+
+    useEffect(() => {
+        const openSections: string[] = [];
+        if (description) openSections.push("description");
+        if (checklist.length > 0) openSections.push("checklist");
+        setVisibleSections(openSections);
+    }, [checklist.length, description]);
+
+    const showSection = (section: string) => {
+        if (!visibleSections.includes(section)) {
+            setVisibleSections(prev => [...prev, section]);
+        }
+    };
+
+    const hideSection = (section: string) => {
+        setVisibleSections(prev => prev.filter(s => s !== section));
+        if (section === "description") setDescription("");
+        if (section === "checklist") setChecklist([]);
+    };
+
+    const addChecklistItem = () => {
+        if (newChecklistItem.trim()) {
+            setChecklist(prev => [...prev, { text: newChecklistItem.trim(), done: false }]);
+            setNewChecklistItem("");
+        }
+    };
+
+    const updateChecklistItem = (index: number, updated: Partial<ChecklistItem>) => {
+        setChecklist(prev => {
+            const copy = [...prev];
+            copy[index] = { ...copy[index], ...updated };
+            return copy;
+        });
+    };
+
+    const removeChecklistItem = (index: number) => {
+        setChecklist(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const progress = checklist.length
+        ? Math.round((checklist.filter(i => i.done).length / checklist.length) * 100)
+        : 0;
 
     const handleSave = () => {
-        if (onSave) {
-            onSave({ ...card, title, description });
-        }
+        onSave(card.id, {
+            title,
+            description,
+            checklist,
+        });
         onClose();
     };
 
     return (
-        <div
-            className="modal-overlay"
-            onClick={onClose}
-            style={{
-                position: "fixed",
-                top: 0, left: 0, right: 0, bottom: 0,
-                backgroundColor: "rgba(0,0,0,0.5)",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-            }}
-        >
-            <div
-                className="modal-content"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                    backgroundColor: "white",
-                    padding: "1rem",
-                    borderRadius: "8px",
-                    width: "400px",
-                    maxWidth: "90%",
-                }}
-            >
-                <h2>Modifier la carte</h2>
-
-                <label>
-                    Titre :
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <input
                         type="text"
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        style={{ width: "100%", marginBottom: "0.5rem" }}
+                        onChange={e => setTitle(e.target.value)}
+                        style={{ fontSize: "1.5rem", fontWeight: "bold", flex: 1 }}
                     />
-                </label>
+                    <button onClick={() => onDelete(card.id)}>🗑️ Supprimer</button>
+                </div>
 
-                <label>
-                    Description :
-                    <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        rows={5}
-                        style={{ width: "100%", marginBottom: "0.5rem" }}
-                    />
-                </label>
+                <div className="card-options" style={{ marginTop: "1rem" }}>
+                    {!visibleSections.includes("description") && (
+                        <button onClick={() => showSection("description")}>
+                            ➕ Ajouter une description
+                        </button>
+                    )}
+                    {!visibleSections.includes("checklist") && (
+                        <button onClick={() => showSection("checklist")}>
+                            ➕ Ajouter une checklist
+                        </button>
+                    )}
+                </div>
 
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
-                    <button onClick={onClose}>Annuler</button>
-                    <button onClick={handleSave}>Sauvegarder</button>
+                {visibleSections.includes("description") && (
+                    <div className="card-section">
+                        <div className="section-header">
+                            <h3>Description</h3>
+                            <button onClick={() => hideSection("description")}>🗑️</button>
+                        </div>
+                        <textarea
+                            rows={4}
+                            value={description}
+                            onChange={e => setDescription(e.target.value)}
+                            placeholder="Ajoutez une description..."
+                        />
+                    </div>
+                )}
+
+                {visibleSections.includes("checklist") && (
+                    <div className="card-section">
+                        <div className="section-header">
+                            <h3>Checklist</h3>
+                            <button onClick={() => hideSection("checklist")}>🗑️</button>
+                        </div>
+
+                        {checklist.length > 0 && (
+                            <div className="progress-bar" style={{ marginBottom: "1rem" }}>
+                                <div
+                                    style={{
+                                        background: "#4caf50",
+                                        height: "8px",
+                                        width: `${progress}%`,
+                                        transition: "width 0.3s"
+                                    }}
+                                />
+                                <small>{progress}%</small>
+                            </div>
+                        )}
+
+                        <ul>
+                            {checklist.map((item, idx) => (
+                                <li key={idx} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={item.done}
+                                        onChange={() => updateChecklistItem(idx, { done: !item.done })}
+                                    />
+                                    <input
+                                        type="text"
+                                        value={item.text}
+                                        onChange={e => updateChecklistItem(idx, { text: e.target.value })}
+                                        style={{ flex: 1 }}
+                                    />
+                                    <button onClick={() => removeChecklistItem(idx)}>❌</button>
+                                </li>
+                            ))}
+                        </ul>
+
+                        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+                            <input
+                                type="text"
+                                placeholder="Nouvel élément"
+                                value={newChecklistItem}
+                                onChange={e => setNewChecklistItem(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        addChecklistItem();
+                                    }
+                                }}
+                            />
+                            <button onClick={addChecklistItem}>Ajouter</button>
+                        </div>
+                    </div>
+                )}
+
+                <div>
+                    <button style={{ marginTop: "1rem" }} onClick={handleSave}>
+                        💾 Enregistrer
+                    </button>
+
+                    <button onClick={onClose}>✖️ Fermer</button>
                 </div>
             </div>
         </div>

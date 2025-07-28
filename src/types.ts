@@ -12,8 +12,18 @@ export type Kanban = {
 };
 
 export type CardElement = {
-    id: number;
+    id: number | string;
     title: string;
     description?: string;
-    // plus tard : catégorie, deadline, checklist...
+    labels?: { id: number; name: string; color: string }[];
+    dueDate?: string; // ISO string
+    checklist?: ChecklistItem[];
+    comments?: { id: number; author: string; date: string; content: string }[];
+    assignees?: { id: number; name: string; avatarUrl?: string }[];
+    attachments?: { id: number; filename: string; url: string }[];
+}
+
+export type ChecklistItem = {
+    text: string;
+    done: boolean;
 };

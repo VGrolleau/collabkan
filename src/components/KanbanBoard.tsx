@@ -1,4 +1,3 @@
-// src/components/KanbanBoard.tsx
 "use client";
 
 import { useState } from "react";
@@ -61,6 +60,28 @@ export default function KanbanBoard({ kanban, updateKanbanColumns }: Props) {
     function handleCardClick(card: CardElement) {
         setSelectedCard(card);
     }
+
+    const handleCardSave = (cardId: number | string, updatedData: Partial<CardElement>) => {
+        const updatedColumns = kanban.columns.map(col => ({
+            ...col,
+            cards: col.cards.map(card =>
+                card.id === cardId ? { ...card, ...updatedData } : card
+            )
+        }));
+        updateKanbanColumns(updatedColumns);
+
+        // optionnel : fermer la modale après sauvegarde
+        setSelectedCard(null);
+    };
+
+
+    const handleCardDelete = (cardId: number | string) => {
+        const updatedColumns = kanban.columns.map(col => ({
+            ...col,
+            cards: col.cards.filter(c => c.id !== cardId),
+        }));
+        updateKanbanColumns(updatedColumns);
+    };
 
     return (
         <section>
@@ -130,20 +151,8 @@ export default function KanbanBoard({ kanban, updateKanbanColumns }: Props) {
                 <CardModal
                     card={selectedCard}
                     onClose={() => setSelectedCard(null)}
-                    onSave={(updatedCard) => {
-                        // Mets à jour la carte dans la colonne
-                        const updatedColumns = kanban.columns.map(col => {
-                            if (!col.cards) return col;
-                            return {
-                                ...col,
-                                cards: col.cards.map(card =>
-                                    card.id === updatedCard.id ? updatedCard : card
-                                ),
-                            };
-                        });
-                        updateKanbanColumns(updatedColumns);
-                        setSelectedCard(updatedCard);
-                    }}
+                    onSave={handleCardSave}
+                    onDelete={handleCardDelete}
                 />
             )}
         </section>

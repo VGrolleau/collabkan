@@ -94,3 +94,28 @@ body {
     cursor: pointer;
     height: fit-content;
 }
+
+.close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+
+.card-options {
+    margin-top: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.card-section {
+    margin-top: 1.5rem;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
