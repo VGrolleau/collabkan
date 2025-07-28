@@ -1,31 +1,34 @@
+// src/components/Sidebar.tsx
 "use client";
 
 import React, { useState } from "react";
 import AddKanbanModal from "./AddKanbanModal";
-
-type Kanban = {
-    id: number;
-    name: string;
-    description: string;
-};
+import { Kanban } from "../types";
 
 type Props = {
     kanbans: Kanban[];
     onSelect: (kanban: Kanban) => void;
-    onAddKanban: (kanban: Kanban) => void;
-    onRequestDelete: (kanban: Kanban) => void;
+    onAddKanban: (data: { title: string; description: string }) => void;
+    onDeleteKanban: (id: number) => void;
 };
 
-export default function Sidebar({ kanbans, onSelect, onAddKanban, onRequestDelete }: Props) {
+export default function Sidebar({
+    kanbans,
+    onSelect,
+    onAddKanban,
+    onDeleteKanban,
+}: Props) {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const handleAdd = (data: { title: string; description: string }) => {
-        const newKanban = {
-            id: Date.now(),
-            name: data.title,
-            description: data.description,
-        };
-        onAddKanban(newKanban);
+    const handleDelete = (kanban: Kanban) => {
+        const confirmation = prompt(
+            `Pour supprimer « ${kanban.name} », tapez son nom :`
+        );
+        if (confirmation === kanban.name) {
+            onDeleteKanban(kanban.id);
+        } else {
+            alert("Nom incorrect. Suppression annulée.");
+        }
     };
 
     return (
@@ -37,7 +40,7 @@ export default function Sidebar({ kanbans, onSelect, onAddKanban, onRequestDelet
                     {kanbans.map((k) => (
                         <li key={k.id}>
                             <button onClick={() => onSelect(k)}>{k.name}</button>
-                            <button onClick={() => onRequestDelete(k)}>🗑️</button>
+                            <button onClick={() => handleDelete(k)}>🗑️</button>
                         </li>
                     ))}
                 </ul>
@@ -47,7 +50,10 @@ export default function Sidebar({ kanbans, onSelect, onAddKanban, onRequestDelet
             {isModalOpen && (
                 <AddKanbanModal
                     onClose={() => setIsModalOpen(false)}
-                    onAdd={handleAdd}
+                    onAdd={(data) => {
+                        onAddKanban(data);
+                        setIsModalOpen(false);
+                    }}
                 />
             )}
         </aside>
