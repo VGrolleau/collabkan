@@ -13,10 +13,10 @@ type Props = {
     kanbans: Kanban[];
     onSelect: (kanban: Kanban) => void;
     onAddKanban: (kanban: Kanban) => void;
-    onDelete?: (id: number) => void;
+    onRequestDelete: (kanban: Kanban) => void;
 };
 
-export default function Sidebar({ kanbans, onSelect, onAddKanban, onDelete }: Props) {
+export default function Sidebar({ kanbans, onSelect, onAddKanban, onRequestDelete }: Props) {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleAdd = (data: { title: string; description: string }) => {
@@ -37,7 +37,7 @@ export default function Sidebar({ kanbans, onSelect, onAddKanban, onDelete }: Pr
                     {kanbans.map((k) => (
                         <li key={k.id}>
                             <button onClick={() => onSelect(k)}>{k.name}</button>
-                            <button onClick={() => onDelete?.(k.id)}>🗑️</button>
+                            <button onClick={() => onRequestDelete(k)}>🗑️</button>
                         </li>
                     ))}
                 </ul>

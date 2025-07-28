@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import KanbanBoard from "./KanbanBoard";
+import DeleteKanbanModal from "./DeleteKanbanModal";
 
 type Kanban = {
     id: number;
@@ -13,16 +14,20 @@ type Kanban = {
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const [kanbans, setKanbans] = useState<Kanban[]>([]);
     const [selected, setSelected] = useState<Kanban | null>(null);
+    const [kanbanToDelete, setKanbanToDelete] = useState<Kanban | null>(null);
 
     const handleAddKanban = (kanban: Kanban) => {
         setKanbans((prev) => [...prev, kanban]);
         setSelected(kanban); // Optionnel : sélectionner le nouveau
     };
 
-    const handleDeleteKanban = (id: number) => {
-        setKanbans(prev => prev.filter(k => k.id !== id));
-        if (selected?.id === id) {
-            setSelected(null);
+    const handleConfirmDelete = () => {
+        if (kanbanToDelete) {
+            setKanbans(prev => prev.filter(k => k.id !== kanbanToDelete.id));
+            if (selected?.id === kanbanToDelete.id) {
+                setSelected(null);
+            }
+            setKanbanToDelete(null);
         }
     };
 
@@ -32,7 +37,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 kanbans={kanbans}
                 onSelect={setSelected}
                 onAddKanban={handleAddKanban}
-                onDelete={handleDeleteKanban}
+                onRequestDelete={setKanbanToDelete}
             />
             <main>
                 {selected ? (
@@ -42,6 +47,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 )}
                 {children}
             </main>
+
+            {kanbanToDelete && (
+                <DeleteKanbanModal
+                    kanban={kanbanToDelete}
+                    onCancel={() => setKanbanToDelete(null)}
+                    onConfirm={handleConfirmDelete}
+                />
+            )}
         </>
     );
 }
