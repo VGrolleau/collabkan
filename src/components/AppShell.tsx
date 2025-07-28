@@ -4,30 +4,43 @@ import { useState } from "react";
 import Sidebar from "./Sidebar";
 import KanbanBoard from "./KanbanBoard";
 
-const initialKanbans = [
-    { id: 1, name: "Kanban 1", description: "Test 1" },
-    { id: 2, name: "Kanban 2", description: "Test 2" },
-];
+type Kanban = {
+    id: number;
+    name: string;
+    description: string;
+};
 
-export default function AppShell() {
-    const [kanbans] = useState(initialKanbans);
-    const [selectedKanban, setSelectedKanban] = useState<typeof initialKanbans[0] | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+export default function AppShell({ children }: { children: React.ReactNode }) {
+    const [kanbans, setKanbans] = useState<Kanban[]>([]);
+    const [selected, setSelected] = useState<Kanban | null>(null);
 
-    function handleSelectKanban(id: number) {
-        const kanban = kanbans.find(k => k.id === id) || null;
-        setSelectedKanban(kanban);
-    }
+    const handleAddKanban = (kanban: Kanban) => {
+        setKanbans((prev) => [...prev, kanban]);
+        setSelected(kanban); // Optionnel : sélectionner le nouveau
+    };
+
+    const handleDeleteKanban = (id: number) => {
+        setKanbans(prev => prev.filter(k => k.id !== id));
+        if (selected?.id === id) {
+            setSelected(null);
+        }
+    };
 
     return (
         <>
-            <Sidebar kanbans={kanbans} onSelect={handleSelectKanban} onAddKanbanClick={() => setIsModalOpen(true)} />
+            <Sidebar
+                kanbans={kanbans}
+                onSelect={setSelected}
+                onAddKanban={handleAddKanban}
+                onDelete={handleDeleteKanban}
+            />
             <main>
-                {selectedKanban ? (
-                    <KanbanBoard kanban={selectedKanban} />
+                {selected ? (
+                    <KanbanBoard kanban={selected} />
                 ) : (
-                    <p>Sélectionnez un tableau à gauche</p>
+                    <p>{`Bienvenue ! Sélectionnez une collab' pour commencer.`}</p>
                 )}
+                {children}
             </main>
         </>
     );
