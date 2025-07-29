@@ -7,7 +7,7 @@ import { ColumnSelect } from "./ColumnSelect";
 import { DescriptionSection } from "./DescriptionSection";
 import { ChecklistSection } from "./ChecklistSection";
 import { SaveCloseActions } from "./SaveCloseActions";
-
+import { CardLabels } from "./CardLabels";
 
 export type CardModalProps = {
     card: CardElement;
@@ -27,18 +27,21 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
     const [newChecklistItem, setNewChecklistItem] = useState("");
     const [visibleSections, setVisibleSections] = useState<string[]>([]);
     const [columnId, setColumnId] = useState<number | undefined>(undefined);
+    const [labels, setLabels] = useState(card.labels || []);
 
     useEffect(() => {
         const openSections: string[] = [];
         if (description) openSections.push("description");
         if (checklist.length > 0) openSections.push("checklist");
+        if (labels && labels.length > 0) openSections.push("labels");
+
         setVisibleSections(openSections);
 
         const currentCol = kanbanColumns.find(col =>
             col.cards.some(c => c.id === card.id)
         );
         setColumnId(currentCol?.id);
-    }, [card, kanbanColumns, checklist.length, description]);
+    }, [card, kanbanColumns, checklist.length, description, labels]);
 
     const showSection = (section: string) => {
         if (!visibleSections.includes(section)) {
@@ -50,7 +53,15 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
         setVisibleSections(prev => prev.filter(s => s !== section));
         if (section === "description") setDescription("");
         if (section === "checklist") setChecklist([]);
+        if (section === "labels") setLabels([]);
     };
+
+    const allLabels = [
+        { id: 1, name: "Urgent", color: "#e53935" },
+        { id: 2, name: "Bug", color: "#fb8c00" },
+        { id: 3, name: "Amélioration", color: "#43a047" },
+        { id: 4, name: "Revue", color: "#1e88e5" },
+    ];
 
     const handleSave = () => {
         if (!title.trim()) {
@@ -63,6 +74,7 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
             description,
             checklist,
             columnId,
+            labels,
         });
         onClose();
     };
@@ -79,6 +91,9 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
                     )}
                     {!visibleSections.includes("checklist") && (
                         <button onClick={() => showSection("checklist")}>➕ Ajouter une checklist</button>
+                    )}
+                    {!visibleSections.includes("labels") && (
+                        <button onClick={() => showSection("labels")}>➕ Ajouter un label</button>
                     )}
                 </div>
 
@@ -97,6 +112,17 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
                         newItem={newChecklistItem}
                         setNewItem={setNewChecklistItem}
                         onDelete={() => hideSection("checklist")}
+                    />
+                )}
+
+                {visibleSections.includes("labels") && (
+                    <CardLabels
+                        allLabels={allLabels}
+                        selectedLabels={labels}
+                        onChange={setLabels}
+                        onDelete={() => {
+                            hideSection("labels");
+                        }}
                     />
                 )}
 
