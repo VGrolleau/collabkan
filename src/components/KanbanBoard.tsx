@@ -19,7 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 import { Kanban, Column, CardElement } from "../types";
 import { Card } from "./Card";
-import { CardModal } from "./CardModal";
+import { CardModal } from "./CardModal/CardModal";
 import KanbanHeaderEdit from "./KanbanHeaderEdit";
 
 type Props = {
