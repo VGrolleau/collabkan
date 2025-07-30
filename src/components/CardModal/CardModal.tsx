@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CardElement, ChecklistItem, Column } from "@/types";
+import { CardElement, ChecklistItem, Column, Label } from "@/types";
 import { TitleBar } from "./TitleBar";
 import { ColumnSelect } from "./ColumnSelect";
 import { DescriptionSection } from "./DescriptionSection";
@@ -27,14 +27,20 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
     const [newChecklistItem, setNewChecklistItem] = useState("");
     const [visibleSections, setVisibleSections] = useState<string[]>([]);
     const [columnId, setColumnId] = useState<number | undefined>(undefined);
-    const [labels, setLabels] = useState(card.labels || []);
+    const [labels, setLabels] = useState<Label[]>(card.labels || []);
+
+    const [allLabels, setAllLabels] = useState<Label[]>([
+        { id: 1, name: "Urgent", color: "#e53935" },
+        { id: 2, name: "Bug", color: "#fb8c00" },
+        { id: 3, name: "Amélioration", color: "#43a047" },
+        { id: 4, name: "Revue", color: "#1e88e5" },
+    ]);
 
     useEffect(() => {
         const openSections: string[] = [];
         if (description) openSections.push("description");
         if (checklist.length > 0) openSections.push("checklist");
-        if (labels && labels.length > 0) openSections.push("labels");
-
+        if (labels.length > 0) openSections.push("labels");
         setVisibleSections(openSections);
 
         const currentCol = kanbanColumns.find(col =>
@@ -56,12 +62,32 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
         if (section === "labels") setLabels([]);
     };
 
-    const allLabels = [
-        { id: 1, name: "Urgent", color: "#e53935" },
-        { id: 2, name: "Bug", color: "#fb8c00" },
-        { id: 3, name: "Amélioration", color: "#43a047" },
-        { id: 4, name: "Revue", color: "#1e88e5" },
-    ];
+    const handleAddLabel = (name: string, color: string) => {
+        const exists = allLabels.some(
+            label => label.name.trim().toLowerCase() === name.trim().toLowerCase()
+        );
+        if (exists) {
+            // La validation visuelle est gérée dans le composant enfant
+            return;
+        }
+
+        const newLabel: Label = {
+            id: Date.now(),
+            name,
+            color,
+        };
+        setAllLabels(prev => [...prev, newLabel]);
+    };
+
+    const handleUpdateLabel = (updated: Label) => {
+        setAllLabels(prev => prev.map(label => label.id === updated.id ? updated : label));
+        setLabels(prev => prev.map(label => label.id === updated.id ? updated : label));
+    };
+
+    const handleDeleteLabel = (id: number) => {
+        setAllLabels(prev => prev.filter(label => label.id !== id));
+        setLabels(prev => prev.filter(label => label.id !== id));
+    };
 
     const handleSave = () => {
         if (!title.trim()) {
@@ -85,46 +111,49 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
                 <TitleBar title={title} setTitle={setTitle} onDelete={() => onDelete(card.id)} />
                 <ColumnSelect columnId={columnId} setColumnId={setColumnId} kanbanColumns={kanbanColumns} />
 
-                <div className="card-options" style={{ marginTop: "1rem" }}>
-                    {!visibleSections.includes("description") && (
-                        <button onClick={() => showSection("description")}>➕ Ajouter une description</button>
+                <div className="modal-scrollable-content">
+                    <div className="card-options" style={{ marginTop: "1rem" }}>
+                        {!visibleSections.includes("description") && (
+                            <button onClick={() => showSection("description")}>➕ Ajouter une description</button>
+                        )}
+                        {!visibleSections.includes("checklist") && (
+                            <button onClick={() => showSection("checklist")}>➕ Ajouter une checklist</button>
+                        )}
+                        {!visibleSections.includes("labels") && (
+                            <button onClick={() => showSection("labels")}>➕ Ajouter un label</button>
+                        )}
+                    </div>
+
+                    {visibleSections.includes("description") && (
+                        <DescriptionSection
+                            description={description}
+                            setDescription={setDescription}
+                            onDelete={() => hideSection("description")}
+                        />
                     )}
-                    {!visibleSections.includes("checklist") && (
-                        <button onClick={() => showSection("checklist")}>➕ Ajouter une checklist</button>
+
+                    {visibleSections.includes("checklist") && (
+                        <ChecklistSection
+                            checklist={checklist}
+                            setChecklist={setChecklist}
+                            newItem={newChecklistItem}
+                            setNewItem={setNewChecklistItem}
+                            onDelete={() => hideSection("checklist")}
+                        />
                     )}
-                    {!visibleSections.includes("labels") && (
-                        <button onClick={() => showSection("labels")}>➕ Ajouter un label</button>
+
+                    {visibleSections.includes("labels") && (
+                        <CardLabels
+                            allLabels={allLabels}
+                            selectedLabels={labels}
+                            onChange={setLabels}
+                            onDelete={() => hideSection("labels")}
+                            onAdd={handleAddLabel}
+                            onUpdate={handleUpdateLabel}
+                            onRemove={handleDeleteLabel}
+                        />
                     )}
                 </div>
-
-                {visibleSections.includes("description") && (
-                    <DescriptionSection
-                        description={description}
-                        setDescription={setDescription}
-                        onDelete={() => hideSection("description")}
-                    />
-                )}
-
-                {visibleSections.includes("checklist") && (
-                    <ChecklistSection
-                        checklist={checklist}
-                        setChecklist={setChecklist}
-                        newItem={newChecklistItem}
-                        setNewItem={setNewChecklistItem}
-                        onDelete={() => hideSection("checklist")}
-                    />
-                )}
-
-                {visibleSections.includes("labels") && (
-                    <CardLabels
-                        allLabels={allLabels}
-                        selectedLabels={labels}
-                        onChange={setLabels}
-                        onDelete={() => {
-                            hideSection("labels");
-                        }}
-                    />
-                )}
 
                 <SaveCloseActions onSave={handleSave} onClose={onClose} />
             </div>
