@@ -9,6 +9,9 @@ import { ChecklistSection } from "./ChecklistSection";
 import { SaveCloseActions } from "./SaveCloseActions";
 import { CardLabels } from "./CardLabels";
 import { DueDateSection } from "./DueDateSection";
+import { CommentsSection } from "./CommentsSection";
+import { AssigneesSection } from "./AssigneesSection";
+import { AttachmentsSection } from "./AttachmentsSection";
 
 export type CardModalProps = {
     card: CardElement;
@@ -30,6 +33,9 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
     const [columnId, setColumnId] = useState<number | undefined>(undefined);
     const [labels, setLabels] = useState<Label[]>(card.labels || []);
     const [dueDate, setDueDate] = useState<string | undefined>(card.dueDate);
+    const [comments, setComments] = useState(card.comments || []);
+    const [assignees, setAssignees] = useState(card.assignees || []);
+    const [attachments, setAttachments] = useState(card.attachments || []);
 
     const [allLabels, setAllLabels] = useState<Label[]>([
         { id: 1, name: "Urgent", color: "#e53935" },
@@ -38,19 +44,28 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
         { id: 4, name: "Revue", color: "#1e88e5" },
     ]);
 
+    const dummyUsers = [
+        { id: 1, name: "Alice", avatarUrl: "https://i.pravatar.cc/150?u=alice" },
+        { id: 2, name: "Bob", avatarUrl: "https://i.pravatar.cc/150?u=bob" },
+        { id: 3, name: "Charlie", avatarUrl: "https://i.pravatar.cc/150?u=charlie" },
+    ];
+
     useEffect(() => {
         const openSections: string[] = [];
         if (description) openSections.push("description");
         if (checklist.length > 0) openSections.push("checklist");
         if (labels.length > 0) openSections.push("labels");
-        if (card.dueDate) openSections.push("dueDate");
+        if (dueDate) openSections.push("dueDate");
+        if (comments.length > 0) openSections.push("comments");
+        if (assignees.length > 0) openSections.push("assignees");
+        if (attachments.length > 0) openSections.push("attachments");
         setVisibleSections(openSections);
 
         const currentCol = kanbanColumns.find(col =>
             col.cards.some(c => c.id === card.id)
         );
         setColumnId(currentCol?.id);
-    }, [card, kanbanColumns, checklist.length, description, labels]);
+    }, [card, kanbanColumns, checklist.length, description, labels, dueDate, comments.length, assignees.length, attachments.length]);
 
     const showSection = (section: string) => {
         if (!visibleSections.includes(section)) {
@@ -64,6 +79,9 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
         if (section === "checklist") setChecklist([]);
         if (section === "labels") setLabels([]);
         if (section === "dueDate") setDueDate(undefined);
+        if (section === "comments") setComments([]);
+        if (section === "assignees") setAssignees([]);
+        if (section === "attachments") setAttachments([]);
     };
 
     const handleAddLabel = (name: string, color: string) => {
@@ -93,6 +111,14 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
         setLabels(prev => prev.filter(label => label.id !== id));
     };
 
+    const handleAddComment = (newComment: { id: number; author: string; date: string; content: string }) => {
+        setComments(prev => [...prev, newComment]);
+    };
+
+    const handleDeleteComment = (commentId: number) => {
+        setComments(prev => prev.filter(c => c.id !== commentId));
+    };
+
     const handleSave = () => {
         if (!title.trim()) {
             alert("Le titre ne peut pas être vide");
@@ -106,7 +132,11 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
             columnId,
             labels,
             dueDate,
+            comments,
+            assignees,
+            attachments,
         });
+
         onClose();
     };
 
@@ -129,6 +159,15 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
                         )}
                         {!visibleSections.includes("dueDate") && (
                             <button onClick={() => showSection("dueDate")}>{`➕ Ajouter une date d'échéance`}</button>
+                        )}
+                        {!visibleSections.includes("comments") && (
+                            <button onClick={() => showSection("comments")}>➕ Ajouter un commentaire</button>
+                        )}
+                        {!visibleSections.includes("assignees") && (
+                            <button onClick={() => showSection("assignees")}>➕ Ajouter des assignés</button>
+                        )}
+                        {!visibleSections.includes("attachments") && (
+                            <button onClick={() => showSection("attachments")}>➕ Ajouter une pièce jointe</button>
                         )}
                     </div>
 
@@ -167,6 +206,31 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
                             dueDate={dueDate}
                             setDueDate={setDueDate}
                             onDelete={() => hideSection("dueDate")}
+                        />
+                    )}
+
+                    {visibleSections.includes("comments") && (
+                        <CommentsSection
+                            comments={comments}
+                            onAddComment={handleAddComment}
+                            onDelete={handleDeleteComment}
+                        />
+                    )}
+
+                    {visibleSections.includes("assignees") && (
+                        <AssigneesSection
+                            assignees={assignees}
+                            setAssignees={setAssignees}
+                            allUsers={dummyUsers}
+                            onDelete={() => hideSection("assignees")}
+                        />
+                    )}
+
+                    {visibleSections.includes("attachments") && (
+                        <AttachmentsSection
+                            attachments={attachments}
+                            setAttachments={setAttachments}
+                            onDelete={() => hideSection("attachments")}
                         />
                     )}
                 </div>

@@ -33,3 +33,22 @@ export type Label = {
     name: string;
     color: string;
 };
+
+export type Comment = {
+    id: number;
+    author: string;
+    date: string;
+    content: string;
+};
+
+export type Assignee = {
+    id: number;
+    name: string;
+    avatarUrl?: string;
+};
+
+export type Attachment = {
+    id: number;
+    filename: string;
+    url: string;
+};
