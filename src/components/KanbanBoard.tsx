@@ -242,6 +242,7 @@ export default function KanbanBoard({
                         borderRadius: 6,
                         border: "1px dashed #aaa",
                         backgroundColor: "transparent",
+                        color: "white",
                         fontWeight: "600",
                         flex: "0 0 auto",
                     }}

@@ -27,7 +27,7 @@ export default function RootLayout({
 
   return (
     <html lang="fr">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`dark ${geistSans.variable} ${geistMono.variable}`}>
         <div id="layout-container">
           <AppShell>
             {children}

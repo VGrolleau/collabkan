@@ -36,6 +36,34 @@ body {
     padding: 1rem;
 }
 
+.modal-header {
+    padding: 1rem 1.5rem 0.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-section {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #fafafa;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+}
+
+.modal-section h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
 .modal-content {
     background: #fff;
     border-radius: 10px;
@@ -46,12 +74,59 @@ body {
     flex-direction: column;
     overflow: hidden;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    padding: 20px 10px;
+}
+
+.modal-content .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #eee;
 }
 
 .modal-scrollable-content {
     overflow-y: auto;
-    padding: 1rem;
-    flex: 1;
+    padding: 1.5rem;
+    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-scrollable-content .card-options button {
+    background: #f0f0f0;
+    border: 1px dashed #ccc;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.modal-scrollable-content .card-options button:hover {
+    background: #e0e0e0;
+}
+
+.title-input {
+    font-size: 1.3rem;
+    font-weight: bold;
+    padding: 0.4rem;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    width: 100%;
+}
+
+.title-input:focus {
+    border-color: #1976d2;
+    outline: none;
+    background: #fefefe;
+}
+
+.save-close-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 /* Kanban Header */
@@ -229,4 +304,78 @@ body {
     font-size: 1.2rem;
     cursor: pointer;
     color: #555;
+}
+
+/* === DARK MODE OVERRIDES === */
+body.dark {
+    background-color: #1e1e1e;
+    color: #f1f1f1;
+}
+
+body.dark #layout-container aside {
+    background-color: #2a2a2a;
+}
+
+body.dark #layout-container main {
+    background-color: #1e1e1e;
+}
+
+body.dark .modal-content {
+    background: #2c2c2c;
+    border-color: #444;
+    color: #f1f1f1;
+}
+
+body.dark .modal-section {
+    background: #333;
+    border: 1px solid #444;
+}
+
+body.dark .kanban-column {
+    background: #2a2a2a;
+    box-shadow: none;
+    border: 1px solid #444;
+    color: black;
+}
+
+body.dark .card {
+    background-color: #383838;
+    border-color: #555;
+    color: #eee;
+}
+
+body.dark .card:hover {
+    box-shadow: 0 0 0 2px #90caf9;
+}
+
+body.dark .add-col-btn {
+    background: #2d3e50;
+    border-color: #1976d2;
+    color: #90caf9;
+}
+
+body.dark .add-col-btn:hover {
+    background: #335272;
+}
+
+body.dark .addcard-div input,
+body.dark .title-input,
+body.dark .edit-group input,
+body.dark .edit-group textarea {
+    background: #2c2c2c;
+    border-color: #555;
+    color: #eee;
+}
+
+body.dark .btn-small {
+    background: #444;
+    color: #ddd;
+}
+
+body.dark .btn-small:hover {
+    background: #555;
+}
+
+body.dark .close-btn {
+    color: #ccc;
 }

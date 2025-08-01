@@ -143,7 +143,7 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
     return (
         <div className="modal-overlay">
             <div className="modal-content">
-                <TitleBar title={title} setTitle={setTitle} onDelete={() => onDelete(card.id)} />
+                <TitleBar title={title} setTitle={setTitle} />
                 <ColumnSelect columnId={columnId} setColumnId={setColumnId} kanbanColumns={kanbanColumns} />
 
                 <div className="modal-scrollable-content">
@@ -235,7 +235,7 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
                     )}
                 </div>
 
-                <SaveCloseActions onSave={handleSave} onClose={onClose} />
+                <SaveCloseActions onSave={handleSave} onDelete={() => onDelete(card.id)} onClose={onClose} />
             </div>
         </div>
     );
