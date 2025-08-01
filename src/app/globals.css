@@ -1,56 +1,62 @@
+/* Reset */
 body {
     margin: 0;
+    font-family: "Segoe UI", Roboto, sans-serif;
+    background-color: #f4f6f8;
+    color: #333;
 }
 
+/* Layout */
 #layout-container {
     display: flex;
     height: 100vh;
-
-    aside {
-        width: 20%;
-        background-color: #f2f2f2;
-        padding: 1rem;
-    }
-
-    main {
-        width: 80%;
-        padding: 1rem;
-    }
 }
 
+#layout-container aside {
+    width: 250px;
+    background-color: #eceff1;
+    padding: 1rem;
+}
+
+#layout-container main {
+    flex-grow: 1;
+    padding: 1.5rem;
+    overflow-x: hidden;
+}
+
+/* Modal */
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.4);
     z-index: 1000;
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 1rem;
-    overflow: auto; /* pour permettre le scroll global si besoin */
 }
 
 .modal-content {
+    background: #fff;
+    border-radius: 10px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
     display: flex;
     flex-direction: column;
-    background: white;
-    max-height: 90vh;       /* ← Limite la hauteur à 90% de l’écran */
-    overflow-y: hidden;       /* ← Ajoute le scroll interne */
-    width: 100%;
-    max-width: 600px;       /* ← Optionnel, limite la largeur */
-    border-radius: 8px;
-    padding: 1rem;
-    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .modal-scrollable-content {
     overflow-y: auto;
-    flex: 1; /* ← prend l’espace disponible */
-    margin: 1rem 0;
+    padding: 1rem;
+    flex: 1;
 }
 
+/* Kanban Header */
 .kanban-header-edit {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .kanban-header-edit h2,
@@ -63,95 +69,76 @@ body {
 .kanban-header-edit button {
     background: none;
     border: none;
+    font-size: 1.2rem;
     cursor: pointer;
-    font-size: 1rem;
+    color: #555;
 }
 
 .edit-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.edit-group input,
-.edit-group textarea {
-    font-size: 1rem;
-    padding: 0.3rem;
-    flex: 1;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-}
-
-.edit-group button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1.2rem;
-}
-
-.cols-section {
-    display: flex;
-    gap: 1rem;
-    padding: 1rem 0;
-    overflow-x: auto;
-    align-items: flex-start;
-}
-
-.kanban-column {
-    flex: 0 0 250px;
-    background: #f5f5f5;
-    border-radius: 8px;
-    padding: 1rem;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    position: relative;
-}
-
-.kanban-column h3 {
-    margin: 0;
-    font-size: 1.2rem;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 0.5rem;
-}
-
-.column-actions {
     display: flex;
     gap: 0.5rem;
     margin-top: 0.5rem;
 }
 
-.cards-list {
-    margin-top: 1rem;
-    min-height: 50px;
+.edit-group input,
+.edit-group textarea {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Columns Section */
+.cols-section {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    align-items: flex-start;
+}
+
+/* Column */
+.kanban-column {
+    flex: 0 0 280px;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    position: relative;
     display: flex;
     flex-direction: column;
-    padding: 0 10px;
+}
+
+.kanban-column h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.column-actions {
+    display: flex;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.cards-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
 }
 
-.cards-list button {
-    padding: 5px;
+/* Card */
+.card {
+    padding: 0.75rem;
+    background-color: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    text-align: left;
+    transition: box-shadow 0.2s;
 }
 
-.addcard-div {
-    display: flex;
-    justify-content: space-around;
-}
-
-.add-col-btn {
-    flex: 0 0 250px;
-    background: transparent;
-    border: 2px dashed #aaa;
-    color: #555;
-    border-radius: 8px;
-    padding: 1rem;
-    cursor: pointer;
-    height: fit-content;
-}
-
-.close-btn {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
+.card:hover {
+    box-shadow: 0 0 0 2px #1976d2;
 }
 
 .card-options {
@@ -161,32 +148,85 @@ body {
     gap: 0.5rem;
 }
 
-.card-section {
-    margin-top: 1.5rem;
-    border-top: 1px solid #eee;
-    padding-top: 1rem;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
+.due-date-tag {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+    display: inline-flex;
     align-items: center;
+    gap: 0.3rem;
 }
 
-.btn-small {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-    background-color: #f0f0f0;
+/* Add card input */
+.addcard-div {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.addcard-div input {
+    flex: 1;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.addcard-div button {
+    padding: 0.4rem 0.7rem;
+    font-size: 1.1rem;
     border: none;
+    background-color: #1976d2;
+    color: white;
     border-radius: 4px;
     cursor: pointer;
 }
 
-.btn-small:hover {
-    background-color: #ddd;
+.addcard-div button:hover {
+    background-color: #1565c0;
 }
 
-.due-date-tag {
-    margin-top: 0.3rem;
-    user-select: none;
+/* Add column button */
+.add-col-btn {
+    flex: 0 0 280px;
+    height: fit-content;
+    background: #e3f2fd;
+    border: 2px dashed #90caf9;
+    border-radius: 10px;
+    padding: 1.5rem;
+    color: #1565c0;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-col-btn:hover {
+    background: #bbdefb;
+}
+
+/* Small button */
+.btn-small {
+    background: #eee;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-small:hover {
+    background: #ddd;
+}
+
+/* Close modal button */
+.close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #555;
 }

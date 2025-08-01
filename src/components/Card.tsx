@@ -1,3 +1,4 @@
+// src/components/Card.tsx
 import { CardElement } from "@/types";
 import { format, isBefore, isWithinInterval, addHours } from "date-fns";
 import { Clock } from "lucide-react";
@@ -5,6 +6,11 @@ import { Clock } from "lucide-react";
 type CardProps = {
     card: CardElement;
     onClick: () => void;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
+    isFirst: boolean;
+    isLast: boolean;
+    style?: React.CSSProperties;
 };
 
 function DueDateTag({ dueDate }: { dueDate?: string }) {
@@ -44,11 +50,29 @@ function DueDateTag({ dueDate }: { dueDate?: string }) {
     );
 }
 
-export function Card({ card, onClick }: CardProps) {
+
+export function Card({ card, onClick, onMoveUp, onMoveDown, isFirst, isLast }: CardProps) {
     return (
-        <button className="card" onClick={onClick} style={{ display: "flex", flexDirection: "column", alignItems: "flex-start" }}>
-            <div>{card.title}</div>
-            <DueDateTag dueDate={card.dueDate} />
-        </button>
+        <div className="card-container" style={{ position: "relative", marginBottom: "8px" }}>
+            <button
+                onClick={onClick}
+                className="card"
+                style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center", width: "100%", minHeight: 60 }}
+            >
+                <div>{card.title}</div>
+                <DueDateTag dueDate={card.dueDate} />
+            </button>
+            <div style={{
+                position: "absolute",
+                right: 4,
+                top: 4,
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+            }}>
+                <button onClick={onMoveUp} disabled={isFirst} style={{ fontSize: "0.8rem" }}>🔼</button>
+                <button onClick={onMoveDown} disabled={isLast} style={{ fontSize: "0.8rem" }}>🔽</button>
+            </div>
+        </div>
     );
 }

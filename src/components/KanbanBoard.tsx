@@ -1,22 +1,6 @@
-// src/components/KanbanBoard.tsx
 "use client";
 
 import { useState } from "react";
-import {
-    DndContext,
-    closestCenter,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    DragEndEvent,
-} from "@dnd-kit/core";
-import {
-    SortableContext,
-    useSortable,
-    verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-
 import { Kanban, Column, CardElement } from "../types";
 import { Card } from "./Card";
 import { CardModal } from "./CardModal/CardModal";
@@ -28,34 +12,6 @@ type Props = {
     updateKanbanInfo: (updated: { name?: string; description?: string }) => void;
 };
 
-function SortableCard({
-    card,
-    onClick,
-}: {
-    card: CardElement;
-    onClick: () => void;
-}) {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: card.id });
-
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        cursor: "grab",
-    };
-
-    return (
-        <li
-            ref={setNodeRef}
-            style={style}
-            {...attributes}
-            {...listeners}
-            onClick={onClick}
-        >
-            <Card card={card} onClick={onClick} />
-        </li>
-    );
-}
-
 export default function KanbanBoard({
     kanban,
     updateKanbanColumns,
@@ -65,10 +21,6 @@ export default function KanbanBoard({
     const [newColumnName, setNewColumnName] = useState("");
     const [newCardTitle, setNewCardTitle] = useState<Record<number, string>>({});
     const [selectedCard, setSelectedCard] = useState<CardElement | null>(null);
-
-    const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-    );
 
     const addColumn = () => {
         const name = prompt("Nom de la nouvelle colonne ?");
@@ -155,35 +107,31 @@ export default function KanbanBoard({
         setSelectedCard(null);
     };
 
-    const allCardIds = kanban.columns.flatMap((col) => col.cards.map((c) => c.id));
-
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (!over || active.id === over.id) return;
-
-        let sourceColIdx = -1;
-        let destColIdx = -1;
-        let activeIdx = -1;
-        let overIdx = -1;
-
-        kanban.columns.forEach((col, colIdx) => {
-            const i1 = col.cards.findIndex((c) => c.id === active.id);
-            const i2 = col.cards.findIndex((c) => c.id === over.id);
-            if (i1 > -1) {
-                sourceColIdx = colIdx;
-                activeIdx = i1;
+    const moveCardUp = (columnId: number, cardId: number | string) => {
+        const newCols = kanban.columns.map((col) => {
+            if (col.id !== columnId) return col;
+            const idx = col.cards.findIndex((c) => c.id === cardId);
+            if (idx > 0) {
+                const updatedCards = [...col.cards];
+                [updatedCards[idx - 1], updatedCards[idx]] = [updatedCards[idx], updatedCards[idx - 1]];
+                return { ...col, cards: updatedCards };
             }
-            if (i2 > -1) {
-                destColIdx = colIdx;
-                overIdx = i2;
-            }
+            return col;
         });
+        updateKanbanColumns(newCols);
+    };
 
-        if (sourceColIdx === -1 || destColIdx === -1) return;
-
-        const newCols = [...kanban.columns];
-        const [movedCard] = newCols[sourceColIdx].cards.splice(activeIdx, 1);
-        newCols[destColIdx].cards.splice(overIdx, 0, movedCard);
+    const moveCardDown = (columnId: number, cardId: number | string) => {
+        const newCols = kanban.columns.map((col) => {
+            if (col.id !== columnId) return col;
+            const idx = col.cards.findIndex((c) => c.id === cardId);
+            if (idx > -1 && idx < col.cards.length - 1) {
+                const updatedCards = [...col.cards];
+                [updatedCards[idx], updatedCards[idx + 1]] = [updatedCards[idx + 1], updatedCards[idx]];
+                return { ...col, cards: updatedCards };
+            }
+            return col;
+        });
         updateKanbanColumns(newCols);
     };
 
@@ -191,71 +139,117 @@ export default function KanbanBoard({
         <section>
             <KanbanHeaderEdit kanban={kanban} updateKanbanInfo={updateKanbanInfo} />
 
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={allCardIds} strategy={verticalListSortingStrategy}>
-                    <div className="cols-section" style={{ display: "flex", gap: 16 }}>
-                        {kanban.columns.map((col) => (
-                            <div
-                                key={col.id}
-                                className="kanban-column"
-                                style={{
-                                    flex: 1,
-                                    border: "1px solid #ddd",
-                                    borderRadius: 6,
-                                    padding: 8,
-                                    backgroundColor: "#f9f9f9",
-                                }}
-                            >
-                                {editingId === col.id ? (
-                                    <>
-                                        <input
-                                            value={newColumnName}
-                                            onChange={(e) => setNewColumnName(e.target.value)}
-                                        />
-                                        <button onClick={() => saveEdit(col.id)}>💾</button>
-                                        <button onClick={() => setEditingId(null)}>✖️</button>
-                                    </>
-                                ) : (
-                                    <>
-                                        <h3>{col.name}</h3>
-                                        <button onClick={() => { setEditingId(col.id); setNewColumnName(col.name); }}>✏️</button>
-                                        <button onClick={() => deleteColumn(col.id)}>🗑️</button>
-                                    </>
-                                )}
-                                <ul style={{ listStyle: "none", padding: 0, minHeight: 100 }}>
-                                    {(col.cards ?? []).map((card) => (
-                                        <SortableCard
-                                            key={card.id}
-                                            card={card}
-                                            onClick={() => handleCardClick(card)}
-                                        />
-                                    ))}
-                                </ul>
-                                <div style={{ marginTop: 8 }}>
-                                    <input
-                                        placeholder="Titre nouvelle carte"
-                                        value={newCardTitle[col.id] || ""}
-                                        onChange={(e) =>
-                                            setNewCardTitle((prev) => ({
-                                                ...prev,
-                                                [col.id]: e.target.value,
-                                            }))
-                                        }
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter") {
-                                                e.preventDefault();
-                                                addCard(col.id);
-                                            }
-                                        }}
-                                    />
-                                    <button onClick={() => addCard(col.id)}>➕</button>
+            <div
+                className="cols-section"
+                style={{
+                    display: "flex",
+                    gap: 16,
+                    overflowX: "auto",
+                    paddingBottom: 8,
+                }}
+            >
+                {kanban.columns.map((col) => (
+                    <div
+                        key={col.id}
+                        className="kanban-column"
+                        style={{
+                            flex: "0 0 300px", // largeur fixe, ne réduit pas
+                            border: "1px solid #ddd",
+                            borderRadius: 6,
+                            padding: 8,
+                            backgroundColor: "#f9f9f9",
+                            display: "flex",
+                            flexDirection: "column",
+                            maxHeight: "80vh", // si tu veux limiter en hauteur
+                        }}
+                    >
+                        {editingId === col.id ? (
+                            <>
+                                <input
+                                    value={newColumnName}
+                                    onChange={(e) => setNewColumnName(e.target.value)}
+                                />
+                                <button onClick={() => saveEdit(col.id)}>💾</button>
+                                <button onClick={() => setEditingId(null)}>✖️</button>
+                            </>
+                        ) : (
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <h3>{col.name}</h3>
+                                <div>
+                                    <button onClick={() => { setEditingId(col.id); setNewColumnName(col.name); }} title="Modifier la colonne">✏️</button>
+                                    <button onClick={() => deleteColumn(col.id)} title="Supprimer la colonne">🗑️</button>
                                 </div>
                             </div>
-                        ))}
-                        <button onClick={addColumn}>➕ Ajouter une colonne</button>
+                        )}
+
+                        <ul style={{ listStyle: "none", padding: 0, minHeight: 100 }}>
+                            {col.cards.map((card, idx) => (
+                                <li key={card.id} style={{ marginBottom: 8 }}>
+                                    <Card
+                                        card={card}
+                                        onClick={() => handleCardClick(card)}
+                                        onMoveUp={() => moveCardUp(col.id, card.id)}
+                                        onMoveDown={() => moveCardDown(col.id, card.id)}
+                                        isFirst={idx === 0}
+                                        isLast={idx === col.cards.length - 1}
+                                        style={{ minHeight: 100 }}
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+
+                        <div style={{ marginTop: 8, display: "flex", gap: 4 }}>
+                            <input
+                                placeholder="Titre nouvelle carte"
+                                value={newCardTitle[col.id] || ""}
+                                onChange={(e) =>
+                                    setNewCardTitle((prev) => ({
+                                        ...prev,
+                                        [col.id]: e.target.value,
+                                    }))
+                                }
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        addCard(col.id);
+                                    }
+                                }}
+                                style={{
+                                    flexGrow: 1,
+                                    padding: 6,
+                                    borderRadius: 4,
+                                    border: "1px solid #ccc",
+                                }}
+                            />
+                            <button
+                                onClick={() => addCard(col.id)}
+                                style={{ cursor: "pointer", padding: "6px 12px" }}
+                                title="Ajouter une carte"
+                            >
+                                ➕
+                            </button>
+                        </div>
                     </div>
-                </SortableContext>
-            </DndContext>
+                ))}
+                <button
+                    onClick={addColumn}
+                    style={{
+                        height: 40,
+                        alignSelf: "start",
+                        marginLeft: 12,
+                        padding: "0 16px",
+                        cursor: "pointer",
+                        borderRadius: 6,
+                        border: "1px dashed #aaa",
+                        backgroundColor: "transparent",
+                        fontWeight: "600",
+                        flex: "0 0 auto",
+                    }}
+                    title="Ajouter une colonne"
+                >
+                    + Ajouter une colonne
+                </button>
+            </div>
 
             {selectedCard && (
                 <CardModal
