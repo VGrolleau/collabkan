@@ -172,3 +172,21 @@ body {
     justify-content: space-between;
     align-items: center;
 }
+
+.btn-small {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    background-color: #f0f0f0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-small:hover {
+    background-color: #ddd;
+}
+
+.due-date-tag {
+    margin-top: 0.3rem;
+    user-select: none;
+}

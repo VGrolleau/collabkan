@@ -8,6 +8,7 @@ import { DescriptionSection } from "./DescriptionSection";
 import { ChecklistSection } from "./ChecklistSection";
 import { SaveCloseActions } from "./SaveCloseActions";
 import { CardLabels } from "./CardLabels";
+import { DueDateSection } from "./DueDateSection";
 
 export type CardModalProps = {
     card: CardElement;
@@ -28,6 +29,7 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
     const [visibleSections, setVisibleSections] = useState<string[]>([]);
     const [columnId, setColumnId] = useState<number | undefined>(undefined);
     const [labels, setLabels] = useState<Label[]>(card.labels || []);
+    const [dueDate, setDueDate] = useState<string | undefined>(card.dueDate);
 
     const [allLabels, setAllLabels] = useState<Label[]>([
         { id: 1, name: "Urgent", color: "#e53935" },
@@ -41,6 +43,7 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
         if (description) openSections.push("description");
         if (checklist.length > 0) openSections.push("checklist");
         if (labels.length > 0) openSections.push("labels");
+        if (card.dueDate) openSections.push("dueDate");
         setVisibleSections(openSections);
 
         const currentCol = kanbanColumns.find(col =>
@@ -60,6 +63,7 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
         if (section === "description") setDescription("");
         if (section === "checklist") setChecklist([]);
         if (section === "labels") setLabels([]);
+        if (section === "dueDate") setDueDate(undefined);
     };
 
     const handleAddLabel = (name: string, color: string) => {
@@ -101,6 +105,7 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
             checklist,
             columnId,
             labels,
+            dueDate,
         });
         onClose();
     };
@@ -121,6 +126,9 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
                         )}
                         {!visibleSections.includes("labels") && (
                             <button onClick={() => showSection("labels")}>➕ Ajouter un label</button>
+                        )}
+                        {!visibleSections.includes("dueDate") && (
+                            <button onClick={() => showSection("dueDate")}>{`➕ Ajouter une date d'échéance`}</button>
                         )}
                     </div>
 
@@ -151,6 +159,14 @@ export function CardModal({ card, kanbanColumns, onClose, onSave, onDelete }: Ca
                             onAdd={handleAddLabel}
                             onUpdate={handleUpdateLabel}
                             onRemove={handleDeleteLabel}
+                        />
+                    )}
+
+                    {visibleSections.includes("dueDate") && (
+                        <DueDateSection
+                            dueDate={dueDate}
+                            setDueDate={setDueDate}
+                            onDelete={() => hideSection("dueDate")}
                         />
                     )}
                 </div>
