@@ -12,96 +12,93 @@ model User {
   email         String    @unique
   name          String?
   role          Role      @default(COLLABORATOR)
-  kanbans       Kanban[]  @relation("UserKanbans")
+  createdAt     DateTime  @default(now())
+  avatarUrl     String?
+  comments      Comment[]
   ownedKanbans  Kanban[]  @relation("KanbanOwner")
   assignedCards Card[]    @relation("CardAssignees")
-  createdAt     DateTime  @default(now())
-  comments      Comment[]
-  avatarUrl     String?
+  kanbans       Kanban[]  @relation("UserKanbans")
 }
 
 model Kanban {
   id          String       @id @default(cuid())
   name        String
-  description String?
-  owner       User         @relation("KanbanOwner", fields: [ownerId], references: [id])
   ownerId     String
-  members     User[]       @relation("UserKanbans")
+  createdAt   DateTime     @default(now())
+  description String?
   columns     Column[]
   invitations Invitation[]
-  createdAt   DateTime     @default(now())
+  owner       User         @relation("KanbanOwner", fields: [ownerId], references: [id])
+  members     User[]       @relation("UserKanbans")
 }
 
 model Column {
-  id       String   @id @default(cuid())
+  id       String @id @default(cuid())
   title    String
   order    Int
-  kanban   Kanban   @relation(fields: [kanbanId], references: [id])
   kanbanId String
   cards    Card[]
+  kanban   Kanban @relation(fields: [kanbanId], references: [id])
 }
 
 model Card {
-  id          String      @id @default(cuid())
-  title       String
-  description String?
+  id          String          @id @default(cuid())
   order       Int
-
-  column   Column    @relation(fields: [columnId], references: [id])
-  columnId String
-
-  assignees   User[]          @relation("CardAssignees")
-  labels      Label[]         @relation("CardLabels")
+  columnId    String
+  createdAt   DateTime        @default(now())
+  description String?
+  title       String
+  attachments Attachment[]
+  column      Column          @relation(fields: [columnId], references: [id])
   checklist   ChecklistItem[]
   comments    Comment[]
-  attachments Attachment[]
-
-  createdAt DateTime @default(now())
+  assignees   User[]          @relation("CardAssignees")
+  labels      Label[]         @relation("CardLabels")
 }
 
 model Label {
-  id    String  @id @default(cuid())
+  id    String @id @default(cuid())
   name  String
   color String
-  cards Card[]  @relation("CardLabels")
+  cards Card[] @relation("CardLabels")
 }
 
 model ChecklistItem {
   id     String  @id @default(cuid())
   text   String
   done   Boolean @default(false)
-  card   Card    @relation(fields: [cardId], references: [id])
   cardId String
+  card   Card    @relation(fields: [cardId], references: [id])
 }
 
 model Comment {
   id        String   @id @default(cuid())
   content   String
-  author    User     @relation(fields: [authorId], references: [id])
   authorId  String
-  card      Card     @relation(fields: [cardId], references: [id])
   cardId    String
   createdAt DateTime @default(now())
+  author    User     @relation(fields: [authorId], references: [id])
+  card      Card     @relation(fields: [cardId], references: [id])
 }
 
 model Attachment {
-  id       String  @id @default(cuid())
+  id       String @id @default(cuid())
   filename String
   url      String
-  card     Card    @relation(fields: [cardId], references: [id])
   cardId   String
+  card     Card   @relation(fields: [cardId], references: [id])
 }
 
 model Invitation {
-  id         String   @id @default(cuid())
-  email      String
-  token      String   @unique
-  kanban     Kanban   @relation(fields: [kanbanId], references: [id])
-  kanbanId   String
-  role       Role     @default(COLLABORATOR)
-  createdAt  DateTime @default(now())
-  used       Boolean  @default(false)
-  usedAt     DateTime?
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  kanbanId  String
+  role      Role      @default(COLLABORATOR)
+  createdAt DateTime  @default(now())
+  used      Boolean   @default(false)
+  usedAt    DateTime?
+  kanban    Kanban    @relation(fields: [kanbanId], references: [id])
 }
 
 enum Role {
