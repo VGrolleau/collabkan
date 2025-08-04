@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
-import KanbanBoard from "./KanbanBoard";
+import KanbanBoard from "./KanbanBoard/KanbanBoard";
 import { Kanban, Column } from "../types";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {

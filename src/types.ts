@@ -1,5 +1,5 @@
 export type Column = {
-    id: number;
+    id: number | string;
     name: string;
     cards: CardElement[];
 };
@@ -29,26 +29,26 @@ export type ChecklistItem = {
 };
 
 export type Label = {
-    id: number;
+    id: number | string;
     name: string;
     color: string;
 };
 
 export type Comment = {
-    id: number;
+    id: number | string;
     author: string;
     date: string;
     content: string;
 };
 
 export type Assignee = {
-    id: number;
+    id: number | string;
     name: string;
     avatarUrl?: string;
 };
 
 export type Attachment = {
-    id: number;
+    id: number | string;
     filename: string;
     url: string;
 };

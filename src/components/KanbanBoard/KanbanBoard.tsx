@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Kanban, Column, CardElement } from "../types";
-import { Card } from "./Card";
-import { CardModal } from "./CardModal/CardModal";
-import KanbanHeaderEdit from "./KanbanHeaderEdit";
+import { Kanban, Column, CardElement } from "../../types";
+import { Card } from "../Card";
+import { CardModal } from "../CardModal/CardModal";
+import KanbanHeaderEdit from "../KanbanHeaderEdit";
 
 type Props = {
     kanban: Kanban;
@@ -17,38 +17,61 @@ export default function KanbanBoard({
     updateKanbanColumns,
     updateKanbanInfo,
 }: Props) {
-    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingId, setEditingId] = useState<number | string | null>(null);
     const [newColumnName, setNewColumnName] = useState("");
-    const [newCardTitle, setNewCardTitle] = useState<Record<number, string>>({});
+    const [newCardTitle, setNewCardTitle] = useState<Record<number | string, string>>({});
     const [selectedCard, setSelectedCard] = useState<CardElement | null>(null);
 
-    const addColumn = () => {
+    const addColumn = async () => {
         const name = prompt("Nom de la nouvelle colonne ?");
         if (name?.trim()) {
-            const newCol: Column = { id: Date.now(), name: name.trim(), cards: [] };
+            const res = await fetch("/api/columns", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, kanbanId: kanban.id }),
+            });
+            const newCol: Column = await res.json();
             updateKanbanColumns([...kanban.columns, newCol]);
         }
     };
 
-    const deleteColumn = (id: number) => {
+    const deleteColumn = async (id: number | string) => {
         if (confirm("Supprimer cette colonne ?")) {
+            await fetch(`/api/columns/${id}`, { method: "DELETE" });
             updateKanbanColumns(kanban.columns.filter((c) => c.id !== id));
         }
     };
 
-    const saveEdit = (id: number) => {
+    const saveEdit = async (id: number | string) => {
+        const trimmedName = newColumnName.trim();
+        if (!trimmedName) return alert("Le nom de la colonne ne peut pas être vide.");
+
+        await fetch(`/api/columns/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: trimmedName }),
+        });
+
         updateKanbanColumns(
             kanban.columns.map((c) =>
-                c.id === id ? { ...c, name: newColumnName.trim() } : c
+                c.id === id ? { ...c, name: trimmedName } : c
             )
         );
         setEditingId(null);
     };
 
-    const addCard = (columnId: number) => {
+    const addCard = async (columnId: number | string) => {
         const title = newCardTitle[columnId]?.trim();
         if (!title) return alert("Le titre de la carte est vide !");
-        const newCard: CardElement = { id: Date.now(), title };
+
+        const res = await fetch("/api/cards", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, columnId }),
+        });
+
+        const newCard: CardElement = await res.json();
+
         const updatedColumns = kanban.columns.map((col) =>
             col.id === columnId
                 ? { ...col, cards: [...(col.cards ?? []), newCard] }
@@ -62,13 +85,13 @@ export default function KanbanBoard({
         setSelectedCard(card);
     };
 
-    const handleCardSave = (
+    const handleCardSave = async (
         cardId: number | string,
-        updatedData: Partial<CardElement> & { columnId?: number }
+        updatedData: Partial<CardElement> & { columnId?: number | string }
     ) => {
         let movedCard: CardElement | null = null;
-        let oldColId: number | null = null;
-        const newColId: number | null = updatedData.columnId ?? null;
+        let oldColId: number | string | null = null;
+        const newColId: number | string | null = updatedData.columnId ?? null;
 
         const intermediateColumns = kanban.columns.map((col) => {
             if (col.cards.some((c) => c.id === cardId)) {
@@ -88,6 +111,12 @@ export default function KanbanBoard({
         if (!movedCard) return;
         const targetColId = newColId ?? oldColId;
 
+        await fetch(`/api/cards/${cardId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...updatedData }),
+        });
+
         const updatedColumns = intermediateColumns.map((col) =>
             col.id === targetColId
                 ? { ...col, cards: [...(col.cards ?? []), movedCard!] }
@@ -98,7 +127,9 @@ export default function KanbanBoard({
         setSelectedCard(null);
     };
 
-    const handleCardDelete = (cardId: number | string) => {
+    const handleCardDelete = async (cardId: number | string) => {
+        await fetch(`/api/cards/${cardId}`, { method: "DELETE" });
+
         const updatedColumns = kanban.columns.map((col) => ({
             ...col,
             cards: col.cards.filter((c) => c.id !== cardId),
@@ -107,7 +138,7 @@ export default function KanbanBoard({
         setSelectedCard(null);
     };
 
-    const moveCardUp = (columnId: number, cardId: number | string) => {
+    const moveCardUp = (columnId: number | string, cardId: number | string) => {
         const newCols = kanban.columns.map((col) => {
             if (col.id !== columnId) return col;
             const idx = col.cards.findIndex((c) => c.id === cardId);
@@ -119,9 +150,10 @@ export default function KanbanBoard({
             return col;
         });
         updateKanbanColumns(newCols);
+        // pas de requête API ici, juste du réarrangement local
     };
 
-    const moveCardDown = (columnId: number, cardId: number | string) => {
+    const moveCardDown = (columnId: number | string, cardId: number | string) => {
         const newCols = kanban.columns.map((col) => {
             if (col.id !== columnId) return col;
             const idx = col.cards.findIndex((c) => c.id === cardId);
@@ -133,6 +165,7 @@ export default function KanbanBoard({
             return col;
         });
         updateKanbanColumns(newCols);
+        // idem, pas d'appel API
     };
 
     return (
@@ -153,14 +186,14 @@ export default function KanbanBoard({
                         key={col.id}
                         className="kanban-column"
                         style={{
-                            flex: "0 0 300px", // largeur fixe, ne réduit pas
+                            flex: "0 0 300px",
                             border: "1px solid #ddd",
                             borderRadius: 6,
                             padding: 8,
                             backgroundColor: "#f9f9f9",
                             display: "flex",
                             flexDirection: "column",
-                            maxHeight: "80vh", // si tu veux limiter en hauteur
+                            maxHeight: "80vh",
                         }}
                     >
                         {editingId === col.id ? (
@@ -176,7 +209,15 @@ export default function KanbanBoard({
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                 <h3>{col.name}</h3>
                                 <div>
-                                    <button onClick={() => { setEditingId(col.id); setNewColumnName(col.name); }} title="Modifier la colonne">✏️</button>
+                                    <button
+                                        onClick={() => {
+                                            setEditingId(col.id);
+                                            setNewColumnName(col.name);
+                                        }}
+                                        title="Modifier la colonne"
+                                    >
+                                        ✏️
+                                    </button>
                                     <button onClick={() => deleteColumn(col.id)} title="Supprimer la colonne">🗑️</button>
                                 </div>
                             </div>
