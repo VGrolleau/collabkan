@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  name           String?
-  role           Role      @default(COLLABORATOR)
-  kanbans        Kanban[]  @relation("UserKanbans")       // collaboration
-  ownedKanbans   Kanban[]  @relation("KanbanOwner")        // propriété
-  assignedCards  Card[]    @relation("CardAssignedToUser") // affectations
-  createdAt      DateTime  @default(now())
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  role          Role      @default(COLLABORATOR)
+  kanbans       Kanban[]  @relation("UserKanbans")
+  ownedKanbans  Kanban[]  @relation("KanbanOwner")
+  assignedCards Card[]    @relation("CardAssignees") // <- mise à jour
+  createdAt     DateTime  @default(now())
+  Comment       Comment[]
 }
 
 model Kanban {
@@ -29,22 +30,63 @@ model Kanban {
 }
 
 model Column {
-  id        String   @id @default(cuid())
-  title     String
-  order     Int
-  kanban    Kanban   @relation(fields: [kanbanId], references: [id])
-  kanbanId  String
-  cards     Card[]
+  id       String @id @default(cuid())
+  title    String
+  order    Int
+  kanban   Kanban @relation(fields: [kanbanId], references: [id])
+  kanbanId String
+  cards    Card[]
 }
 
 model Card {
+  id          String  @id @default(cuid())
+  title       String
+  description String?
+  order       Int
+
+  column   Column @relation(fields: [columnId], references: [id])
+  columnId String
+
+  assignees   User[]          @relation("CardAssignees")
+  labels      Label[]         @relation("CardLabels")
+  checklist   ChecklistItem[]
+  comments    Comment[]
+  attachments Attachment[]
+
+  createdAt DateTime @default(now())
+}
+
+model Label {
+  id    String @id @default(cuid())
+  name  String
+  color String
+  cards Card[] @relation("CardLabels")
+}
+
+model ChecklistItem {
+  id     String  @id @default(cuid())
+  text   String
+  done   Boolean @default(false)
+  card   Card    @relation(fields: [cardId], references: [id])
+  cardId String
+}
+
+model Comment {
   id        String   @id @default(cuid())
   content   String
-  order     Int
-  column    Column   @relation(fields: [columnId], references: [id])
-  columnId  String
-  assigned  User?    @relation("CardAssignedToUser", fields: [assignedId], references: [id])
-  assignedId String?
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  card      Card     @relation(fields: [cardId], references: [id])
+  cardId    String
+  createdAt DateTime @default(now())
+}
+
+model Attachment {
+  id       String @id @default(cuid())
+  filename String
+  url      String
+  card     Card   @relation(fields: [cardId], references: [id])
+  cardId   String
 }
 
 enum Role {
