@@ -45,25 +45,49 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         fetchKanbans();
     }, []);
 
-    const handleAddKanban = (data: { title: string; description: string }) => {
-        // Tu peux ici aussi envoyer la création au backend, pour l'exemple on reste en local
-        const newKanban: Kanban = {
-            id: Date.now(),
-            name: data.title,
-            description: data.description,
-            columns: [
-                { id: 1, name: "À faire", cards: [{ id: Date.now() + 1, title: "Ma première carte" }] },
-                { id: 2, name: "En cours", cards: [] },
-                { id: 3, name: "Terminé", cards: [] },
-            ],
-        };
-        setKanbans(prev => [...prev, newKanban]);
-        setSelected(newKanban);
+    const handleAddKanban = async (data: { title: string; description: string }) => {
+        try {
+            const res = await fetch("/api/kanbans", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Erreur lors de la création");
+            }
+
+            const createdKanban: Kanban = await res.json();
+
+            setKanbans((prev) => [...prev, createdKanban]);
+            setSelected(createdKanban);
+        } catch (e) {
+            alert(e instanceof Error ? e.message : "Erreur inconnue");
+        }
     };
 
-    const handleDeleteKanban = (id: number) => {
-        setKanbans(prev => prev.filter(k => k.id !== id));
-        if (selected?.id === id) setSelected(null);
+    const handleDeleteKanban = async (id: number) => {
+        const confirm = window.confirm("Supprimer ce kanban ? Cette action est irréversible.");
+        if (!confirm) return;
+
+        try {
+            const res = await fetch(`/api/kanbans/${id}`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Erreur lors de la suppression");
+            }
+
+            // Mise à jour de l'état local seulement si la suppression réussit
+            setKanbans(prev => prev.filter(k => k.id !== id));
+            if (selected?.id === id) setSelected(null);
+        } catch (e) {
+            alert(e instanceof Error ? e.message : "Erreur inconnue");
+        }
     };
 
     const updateKanbanInfo = (updated: { name?: string; description?: string }) => {

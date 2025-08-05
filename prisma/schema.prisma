@@ -39,7 +39,7 @@ model Column {
   order    Int
   kanbanId String
   cards    Card[]
-  kanban   Kanban @relation(fields: [kanbanId], references: [id])
+  kanban   Kanban @relation(fields: [kanbanId], references: [id], onDelete: Cascade)
 }
 
 model Card {
@@ -50,7 +50,7 @@ model Card {
   description String?
   title       String
   attachments Attachment[]
-  column      Column          @relation(fields: [columnId], references: [id])
+  column      Column          @relation(fields: [columnId], references: [id], onDelete: Cascade)
   checklist   ChecklistItem[]
   comments    Comment[]
   assignees   User[]          @relation("CardAssignees")

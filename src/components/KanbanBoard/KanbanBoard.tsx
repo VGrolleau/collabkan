@@ -51,12 +51,12 @@ export default function KanbanBoard({
         await fetch(`/api/columns/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: trimmedName }),
+            body: JSON.stringify({ title: trimmedName }),
         });
 
         updateKanbanColumns(
             kanban.columns.map((c) =>
-                c.id === id ? { ...c, name: trimmedName } : c
+                c.id === id ? { ...c, title: trimmedName } : c
             )
         );
         setEditingId(null);
@@ -213,12 +213,12 @@ export default function KanbanBoard({
                             </>
                         ) : (
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <h3>{col.name}</h3>
+                                <h3>{col.title}</h3>
                                 <div>
                                     <button
                                         onClick={() => {
                                             setEditingId(col.id);
-                                            setNewColumnName(col.name);
+                                            setNewColumnName(col.title);
                                         }}
                                         title="Modifier la colonne"
                                     >

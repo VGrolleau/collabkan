@@ -1,3 +1,4 @@
+// src/app/api/kanbans/[id]/route.ts
 import { NextResponse } from 'next/server';
 import prisma from '../../../../lib/prisma';
 
@@ -14,6 +15,19 @@ export async function PUT(
         return NextResponse.json(updated);
     } catch (error) {
         console.error('PUT /api/kanbans/[id] error:', error);
+        return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    }
+}
+
+export async function DELETE(request: Request, context: { params: { id: string } }) {
+    const id = context.params.id;
+    try {
+        await prisma.kanban.delete({
+            where: { id },
+        });
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('DELETE /api/kanbans/[id] error:', error);
         return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
     }
 }

@@ -1,6 +1,6 @@
 export type Column = {
     id: number | string;
-    name: string;
+    title: string;
     cards: CardElement[];
 };
 
