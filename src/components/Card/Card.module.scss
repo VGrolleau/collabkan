@@ -1,0 +1,36 @@
+/* src/components/Card/Card.module.scss */
+.card {
+    padding: 0.75rem;
+    background-color: #383838;
+    border: 1px solid #555;
+    border-radius: 6px;
+    text-align: left;
+    transition: box-shadow 0.2s;
+    color: #eee;
+
+    &:hover {
+        box-shadow: 0 0 0 2px #90caf9;
+    }
+}
+
+.dueDateTag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    color: #fff;
+
+    &.red {
+        background-color: #e53935;
+    }
+
+    &.orange {
+        background-color: #fb8c00;
+    }
+
+    &.grey {
+        background-color: #ccc;
+    }
+}

@@ -1,31 +1,30 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
+import bcrypt from 'bcrypt';
+
 const prisma = new PrismaClient();
 
 async function main() {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+        throw new Error("ADMIN_PASSWORD n'est pas défini dans le fichier .env");
+    }
+
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
+
     const admin = await prisma.user.upsert({
-        where: { email: 'admin@example.com' },
+        where: { email: 'contact@virginiegrolleau.com' },
         update: {},
         create: {
-            email: 'admin@example.com',
-            role: 'ADMIN',
+            email: 'contact@virginiegrolleau.com',
+            name: 'Virginie',
+            role: Role.ADMIN,
+            password: passwordHash,
+            avatarUrl: '', // ou une image par défaut
         },
     });
 
-    const existingKanban = await prisma.kanban.findFirst({
-        where: { name: 'Seed Kanban' },
-    });
-
-    if (!existingKanban) {
-        await prisma.kanban.create({
-            data: {
-                name: 'Seed Kanban',
-                ownerId: admin.id,
-                members: { connect: { id: admin.id } },
-            },
-        });
-    }
-
-    console.log('Seed terminé');
+    console.log('✅ Utilisateur admin créé :', admin.name);
 }
 
 main()

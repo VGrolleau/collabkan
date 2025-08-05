@@ -1,22 +1,31 @@
+// src/app/api/kanbans/route.ts
 import { NextResponse } from 'next/server';
-import prisma from '../../../lib/prisma';
+import { getUserFromRequest } from '@/lib/session';
+import prisma from '@/lib/prisma';
 
-export async function GET() {
-    try {
-        const kanbans = await prisma.kanban.findMany({
-            include: {
-                columns: {
-                    include: {
-                        cards: true,
-                    },
-                },
-                owner: true,
-                members: true,
-            },
-        });
-        return NextResponse.json(kanbans);
-    } catch (error) {
-        console.error(error);
-        return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+export async function GET(request: Request) {
+    const user = await getUserFromRequest(request);
+
+    if (!user) {
+        return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
+
+    const kanbans = await prisma.kanban.findMany({
+        where: {
+            members: {
+                some: {
+                    id: user.id,
+                },
+            },
+        },
+        include: {
+            columns: {
+                include: {
+                    cards: true,
+                },
+            },
+        },
+    });
+
+    return NextResponse.json(kanbans);
 }

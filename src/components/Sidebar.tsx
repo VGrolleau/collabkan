@@ -4,6 +4,7 @@
 import React, { useState } from "react";
 import AddKanbanModal from "./AddKanbanModal";
 import { Kanban } from "../types";
+import LogoutButton from "./LogoutButton";
 
 type Props = {
     kanbans: Kanban[];
@@ -46,6 +47,8 @@ export default function Sidebar({
                 </ul>
                 <button onClick={() => setIsModalOpen(true)}>Ajouter un tableau</button>
             </section>
+
+            <LogoutButton />
 
             {isModalOpen && (
                 <AddKanbanModal

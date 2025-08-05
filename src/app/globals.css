@@ -338,16 +338,6 @@ body.dark .kanban-column {
     color: black;
 }
 
-body.dark .card {
-    background-color: #383838;
-    border-color: #555;
-    color: #eee;
-}
-
-body.dark .card:hover {
-    box-shadow: 0 0 0 2px #90caf9;
-}
-
 body.dark .add-col-btn {
     background: #2d3e50;
     border-color: #1976d2;

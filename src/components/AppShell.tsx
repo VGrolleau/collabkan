@@ -1,3 +1,4 @@
+// src/components/AppShell.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,29 +9,44 @@ import { Kanban, Column } from "../types";
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const [kanbans, setKanbans] = useState<Kanban[]>([]);
     const [selected, setSelected] = useState<Kanban | null>(null);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // 🔽 Charger les kanbans depuis localStorage
+    // Charger les kanbans depuis l'API au chargement du composant
     useEffect(() => {
-        const stored = localStorage.getItem("kanbans");
-        if (stored) {
+        async function fetchKanbans() {
+            setLoading(true);
+            setError(null);
+
             try {
-                const parsed = JSON.parse(stored) as Kanban[];
-                setKanbans(parsed);
-                if (parsed.length > 0) {
-                    setSelected(parsed[0]); // sélectionne le premier par défaut
+                const res = await fetch('/api/kanbans', {
+                    credentials: 'include', // <-- envoi des cookies avec la requête
+                });
+
+                if (!res.ok) {
+                    const data = await res.json();
+                    throw new Error(data.error || 'Erreur lors du chargement');
                 }
-            } catch (e) {
-                console.error("Erreur de parsing des kanbans :", e);
+
+                const data: Kanban[] = await res.json();
+                setKanbans(data);
+                if (data.length > 0) setSelected(data[0]);
+            } catch (e: unknown) {
+                if (e instanceof Error) {
+                    setError(e.message);
+                } else {
+                    setError('Erreur inconnue');
+                }
+            } finally {
+                setLoading(false);
             }
         }
+
+        fetchKanbans();
     }, []);
 
-    // 🔼 Sauvegarder les kanbans dans localStorage à chaque changement
-    useEffect(() => {
-        localStorage.setItem("kanbans", JSON.stringify(kanbans));
-    }, [kanbans]);
-
     const handleAddKanban = (data: { title: string; description: string }) => {
+        // Tu peux ici aussi envoyer la création au backend, pour l'exemple on reste en local
         const newKanban: Kanban = {
             id: Date.now(),
             name: data.title,
@@ -47,34 +63,39 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     const handleDeleteKanban = (id: number) => {
         setKanbans(prev => prev.filter(k => k.id !== id));
-        if (selected?.id === id) {
-            setSelected(null);
-        }
+        if (selected?.id === id) setSelected(null);
     };
 
     const updateKanbanInfo = (updated: { name?: string; description?: string }) => {
         if (!selected) return;
 
-        setKanbans((prev) =>
+        setKanbans(prev =>
             prev.map(k =>
                 k.id === selected.id ? { ...k, ...updated } : k
             )
         );
 
-        setSelected((prev) =>
+        setSelected(prev =>
             prev ? { ...prev, ...updated } : prev
         );
     };
 
     const updateKanbanColumns = (columns: Column[]) => {
         if (!selected) return;
+
         setKanbans(prev =>
             prev.map(k =>
                 k.id === selected.id ? { ...k, columns } : k
             )
         );
-        setSelected(prev => (prev ? { ...prev, columns } : prev));
+
+        setSelected(prev =>
+            prev ? { ...prev, columns } : prev
+        );
     };
+
+    if (loading) return <p>Chargement des kanbans...</p>;
+    if (error) return <p style={{ color: "red" }}>{error}</p>;
 
     return (
         <>

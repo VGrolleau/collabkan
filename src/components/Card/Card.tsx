@@ -1,7 +1,8 @@
-// src/components/Card.tsx
+// src/components/Card/Card.tsx
 import { CardElement } from "@/types";
 import { format, isBefore, isWithinInterval, addHours } from "date-fns";
 import { Clock } from "lucide-react";
+import styles from "./Card.module.scss";
 
 type CardProps = {
     card: CardElement;
@@ -10,7 +11,6 @@ type CardProps = {
     onMoveDown: () => void;
     isFirst: boolean;
     isLast: boolean;
-    style?: React.CSSProperties;
 };
 
 function DueDateTag({ dueDate }: { dueDate?: string }) {
@@ -19,59 +19,53 @@ function DueDateTag({ dueDate }: { dueDate?: string }) {
     const date = new Date(dueDate);
     const now = new Date();
 
-    let color = "#ccc";
+    let colorClass = styles.grey;
     let status = "À venir";
 
     if (isBefore(date, now)) {
-        color = "#e53935"; // rouge
+        colorClass = styles.red;
         status = "En retard";
     } else if (isWithinInterval(date, { start: now, end: addHours(now, 24) })) {
-        color = "#fb8c00"; // orange
+        colorClass = styles.orange;
         status = "Bientôt";
     }
 
     return (
-        <div
-            className="due-date-tag"
-            style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.3rem",
-                backgroundColor: color,
-                color: "#fff",
-                padding: "0.3rem 0.6rem",
-                borderRadius: "6px",
-                fontSize: "0.75rem",
-            }}
-        >
+        <div className={`${styles.dueDateTag} ${colorClass}`}>
             <Clock size={14} />
             {format(date, "dd/MM/yyyy HH:mm")} — {status}
         </div>
     );
 }
 
-
 export function Card({ card, onClick, onMoveUp, onMoveDown, isFirst, isLast }: CardProps) {
     return (
-        <div className="card-container" style={{ position: "relative", marginBottom: "8px" }}>
+        <div style={{ position: "relative", marginBottom: 8 }}>
             <button
                 onClick={onClick}
-                className="card"
+                className={styles.card}
                 style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center", width: "100%", minHeight: 60 }}
             >
                 <div>{card.title}</div>
                 <DueDateTag dueDate={card.dueDate} />
             </button>
-            <div style={{
-                position: "absolute",
-                right: 4,
-                top: 4,
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-            }}>
-                <button onClick={onMoveUp} disabled={isFirst} style={{ fontSize: "0.8rem" }}>🔼</button>
-                <button onClick={onMoveDown} disabled={isLast} style={{ fontSize: "0.8rem" }}>🔽</button>
+
+            <div
+                style={{
+                    position: "absolute",
+                    right: 4,
+                    top: 4,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                }}
+            >
+                <button onClick={onMoveUp} disabled={isFirst} style={{ fontSize: "0.8rem" }}>
+                    🔼
+                </button>
+                <button onClick={onMoveDown} disabled={isLast} style={{ fontSize: "0.8rem" }}>
+                    🔽
+                </button>
             </div>
         </div>
     );

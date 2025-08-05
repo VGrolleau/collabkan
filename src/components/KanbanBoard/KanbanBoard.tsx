@@ -1,10 +1,12 @@
+// src/components/KanbanBoard/KanbanBoard.tsx
 "use client";
 
 import { useState } from "react";
 import { Kanban, Column, CardElement } from "../../types";
-import { Card } from "../Card";
+import { Card } from "../Card/Card";
 import { CardModal } from "../CardModal/CardModal";
 import KanbanHeaderEdit from "../KanbanHeaderEdit";
+import InviteModal from "../InviteModal/InviteModal";
 
 type Props = {
     kanban: Kanban;
@@ -172,6 +174,10 @@ export default function KanbanBoard({
         <section>
             <KanbanHeaderEdit kanban={kanban} updateKanbanInfo={updateKanbanInfo} />
 
+            <div style={{ marginBottom: 16 }}>
+                <InviteModal kanbanId={kanban.id} />
+            </div>
+
             <div
                 className="cols-section"
                 style={{
@@ -233,7 +239,7 @@ export default function KanbanBoard({
                                         onMoveDown={() => moveCardDown(col.id, card.id)}
                                         isFirst={idx === 0}
                                         isLast={idx === col.cards.length - 1}
-                                        style={{ minHeight: 100 }}
+                                    // style={{ minHeight: 100 }}
                                     />
                                 </li>
                             ))}
