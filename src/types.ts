@@ -1,54 +1,62 @@
 export type Column = {
-    id: number | string;
+    id: string;
     title: string;
     cards: CardElement[];
 };
 
 export type Kanban = {
-    id: number;
+    id: string;
     name: string;
-    description: string;
+    description?: string;
     columns: Column[];
 };
 
 export type CardElement = {
-    id: number | string;
+    id: string;
     title: string;
     description?: string;
-    labels?: { id: number; name: string; color: string }[];
-    dueDate?: string; // ISO string
+    labels?: Label[];
+    dueDate?: string;
     checklist?: ChecklistItem[];
-    comments?: { id: number; author: string; date: string; content: string }[];
-    assignees?: { id: number; name: string; avatarUrl?: string }[];
-    attachments?: { id: number; filename: string; url: string }[];
-}
+    comments?: Comment[];
+    assignees?: Assignee[];
+    attachments?: Attachment[];
+};
 
 export type ChecklistItem = {
+    id: string;
     text: string;
     done: boolean;
 };
 
 export type Label = {
-    id: number | string;
+    id: string;
     name: string;
     color: string;
 };
 
 export type Comment = {
-    id: number | string;
+    id: string;
     author: string;
     date: string;
     content: string;
 };
 
 export type Assignee = {
-    id: number | string;
+    id: string;
     name: string;
     avatarUrl?: string;
 };
 
 export type Attachment = {
-    id: number | string;
+    id: string;
     filename: string;
     url: string;
+};
+
+export type User = {
+    id: string;
+    name: string;
+    email?: string;
+    avatarUrl?: string;
 };
