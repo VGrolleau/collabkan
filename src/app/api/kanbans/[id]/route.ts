@@ -19,15 +19,16 @@ export async function PUT(
     }
 }
 
-export async function DELETE(request: Request, context: { params: { id: string } }) {
-    const id = context.params.id;
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+    const id = params.id;
+
     try {
         await prisma.kanban.delete({
             where: { id },
         });
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('DELETE /api/kanbans/[id] error:', error);
-        return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+        console.error("DELETE /api/kanbans/[id] error:", error);
+        return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
     }
 }

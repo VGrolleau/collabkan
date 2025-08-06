@@ -18,5 +18,10 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/', '/login', '/kanban/:path*'], // adapte selon ton app
+    matcher: [
+        '/',
+        '/login',
+        '/kanban/:path*',
+        '/profile', // ✅ ajoute cette ligne
+    ],
 };
