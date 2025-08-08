@@ -32,3 +32,26 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
     }
 }
+
+export async function GET(_: Request, { params }: { params: { id: string } }) {
+    try {
+        const kanban = await prisma.kanban.findUnique({
+            where: { id: params.id },
+            include: {
+                columns: {
+                    orderBy: { order: "asc" },
+                    include: { cards: { orderBy: { id: "asc" } } },
+                },
+            },
+        });
+
+        if (!kanban) {
+            return NextResponse.json({ error: "Kanban non trouvé" }, { status: 404 });
+        }
+
+        return NextResponse.json(kanban);
+    } catch (error) {
+        console.error("GET /api/kanbans/[id] error:", error);
+        return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    }
+}

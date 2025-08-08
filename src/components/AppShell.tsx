@@ -6,6 +6,7 @@ import Sidebar from "./Sidebar";
 import KanbanBoard from "./KanbanBoard/KanbanBoard";
 import { Kanban, Column } from "../types";
 import { User } from "@prisma/client";
+import { fetchKanbanById } from "@/utils/fetchKanbanById";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname(); // 👈 récupère l’URL courante
@@ -62,6 +63,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         fetchUser();
     }, []);
 
+    const handleSelectKanban = async (kanban: Kanban) => {
+        const fullKanban = await fetchKanbanById(kanban.id);
+
+        if (fullKanban) {
+            setSelected(fullKanban);
+        } else {
+            alert("Impossible de charger le kanban.");
+        }
+    };
+
     const handleAddKanban = async (data: { title: string; description: string }) => {
         try {
             const res = await fetch("/api/kanbans", {
@@ -105,18 +116,38 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const updateKanbanInfo = (updated: { name?: string; description?: string }) => {
+    const updateKanbanInfo = async (updated: { name?: string; description?: string }) => {
         if (!selected) return;
 
-        setKanbans(prev =>
-            prev.map(k =>
-                k.id === selected.id ? { ...k, ...updated } : k
-            )
-        );
+        try {
+            // Envoie la mise à jour au backend
+            const res = await fetch(`/api/kanbans/${selected.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updated),
+            });
 
-        setSelected(prev =>
-            prev ? { ...prev, ...updated } : prev
-        );
+            if (!res.ok) {
+                const err = await res.json();
+                alert("Erreur : " + (err.error || "Impossible de modifier le Kanban"));
+                return;
+            }
+
+            // Recharge le kanban complet (avec ses colonnes)
+            const updatedFullKanban = await fetchKanbanById(selected.id);
+            if (!updatedFullKanban) {
+                alert("Erreur : le kanban mis à jour n’a pas pu être rechargé.");
+                return;
+            }
+
+            // Met à jour l'état global
+            setKanbans(prev =>
+                prev.map(k => (k.id === selected.id ? updatedFullKanban : k))
+            );
+            setSelected(updatedFullKanban);
+        } catch (error) {
+            alert("Erreur réseau");
+        }
     };
 
     const updateKanbanColumns = (columns: Column[]) => {
@@ -144,7 +175,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <>
             <Sidebar
                 kanbans={kanbans}
-                onSelect={setSelected}
+                onSelect={handleSelectKanban}
                 onAddKanban={handleAddKanban}
                 onDeleteKanban={handleDeleteKanban}
                 user={user}
@@ -154,6 +185,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     children // 👈 affiche ton composant de profil ici
                 ) : selected ? (
                     <KanbanBoard
+                        key={selected?.id}
                         kanban={selected}
                         updateKanbanColumns={updateKanbanColumns}
                         updateKanbanInfo={updateKanbanInfo}

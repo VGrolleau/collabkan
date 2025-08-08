@@ -13,6 +13,7 @@ export type Kanban = {
 
 export type CardElement = {
     id: string;
+    order: number;
     title: string;
     description?: string;
     labels?: Label[];
