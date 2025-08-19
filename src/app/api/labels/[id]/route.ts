@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '../../../../lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
     try {
@@ -17,17 +17,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         const { name, color } = await req.json();
         const updated = await prisma.label.update({
             where: { id: params.id },
-            data: {
-                name: name ? String(name) : undefined,
-                color: color ? String(color) : undefined,
-            },
+            data: { name, color },
         });
         return NextResponse.json(updated);
     } catch (error) {
-        console.error('PUT /api/labels/[id] error:', error);
-        return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+        console.error("PUT /api/labels/[id] error:", error);
+        return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
     }
 }
+
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
     try {

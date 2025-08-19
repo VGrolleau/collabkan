@@ -1,6 +1,6 @@
 // src/app/api/invitations/route.ts
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { randomUUID } from 'crypto';
 
 export async function POST(request: Request) {

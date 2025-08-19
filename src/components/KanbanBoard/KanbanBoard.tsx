@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Kanban, Column, CardElement } from "../../types";
 import { Card } from "../Card/Card";
-import { CardModal } from "../CardModal/CardModal";
+import CardModal from "../CardModal/CardModal";
 import KanbanHeaderEdit from "../KanbanHeaderEdit";
 import InviteModal from "../InviteModal/InviteModal";
 
@@ -24,10 +24,11 @@ export default function KanbanBoard({
     const [newCardTitle, setNewCardTitle] = useState<Record<number | string, string>>({});
     const [selectedCard, setSelectedCard] = useState<CardElement | null>(null);
 
+    // Ajouter une nouvelle colonne
     const addColumn = async () => {
         const name = prompt("Nom de la nouvelle colonne ?");
         if (name?.trim()) {
-            const order = kanban.columns.length; // 👉 position = dernière
+            const order = kanban.columns.length; // position = dernière
             const res = await fetch("/api/columns", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -49,7 +50,7 @@ export default function KanbanBoard({
         }
     };
 
-
+    // Supprimer une colonne
     const deleteColumn = async (id: number | string) => {
         if (confirm("Supprimer cette colonne ?")) {
             await fetch(`/api/columns/${id}`, { method: "DELETE" });
@@ -57,6 +58,7 @@ export default function KanbanBoard({
         }
     };
 
+    // Sauvegarder édition du nom d’une colonne
     const saveEdit = async (id: number | string) => {
         const trimmedName = newColumnName.trim();
         if (!trimmedName) return alert("Le nom de la colonne ne peut pas être vide.");
@@ -75,6 +77,7 @@ export default function KanbanBoard({
         setEditingId(null);
     };
 
+    // Ajouter une carte dans une colonne
     const addCard = async (columnId: number | string) => {
         const title = newCardTitle[columnId]?.trim();
         if (!title) return alert("Le titre de la carte est vide !");
@@ -93,39 +96,34 @@ export default function KanbanBoard({
 
         const newCard: CardElement = await res.json();
 
-        // 1. Récupère la colonne concernée
-        const targetCol = kanban.columns.find(col => col.id === columnId);
-        if (!targetCol) return;
-
-        // 2. Construit la nouvelle liste des cartes, avec la nouvelle carte à la fin
-        const updatedCards = [...(targetCol.cards ?? []), newCard];
-
-        // 3. Recalcule les order de toutes les cartes
-        const cardsWithNewOrder = updatedCards.map((card, i) => ({
-            ...card,
-            order: i,
-        }));
-
-        // 4. Appelle l'API pour sauvegarder le nouvel ordre des cartes
-        await updateCardOrder(columnId, cardsWithNewOrder.map(({ id, title, order }) => ({ id, title, order })));
-
-        // 5. Mets à jour l'état local avec la colonne corrigée
-        const updatedColumns = kanban.columns.map((col) =>
-            col.id === columnId
-                ? { ...col, cards: cardsWithNewOrder }
-                : col
-        );
+        // Met à jour localement la colonne et les cartes
+        const updatedColumns = kanban.columns.map((col) => {
+            if (col.id === columnId) {
+                const updatedCards = [...(col.cards ?? []), newCard];
+                const cardsWithNewOrder = updatedCards.map((card, i) => ({
+                    ...card,
+                    order: i,
+                }));
+                return { ...col, cards: cardsWithNewOrder };
+            }
+            return col;
+        });
 
         updateKanbanColumns(updatedColumns);
 
-        // 6. Vide l'input pour nouvelle carte
+        // Sauvegarder nouvel ordre des cartes
+        await updateCardOrder(columnId, updatedColumns.find(c => c.id === columnId)?.cards ?? []);
+
+        // Vider input nouvelle carte
         setNewCardTitle(prev => ({ ...prev, [columnId]: "" }));
     };
 
+    // Cliquer sur une carte pour ouvrir le modal
     const handleCardClick = (card: CardElement) => {
         setSelectedCard(card);
     };
 
+    // Sauvegarder les modifications d’une carte (déplacement ou édition)
     const handleCardSave = async (
         cardId: number | string,
         updatedData: Partial<CardElement> & { columnId?: number | string }
@@ -134,6 +132,7 @@ export default function KanbanBoard({
         let oldColId: number | string | null = null;
         const newColId: number | string | null = updatedData.columnId ?? null;
 
+        // Retirer la carte de sa colonne d’origine
         const intermediateColumns = kanban.columns.map((col) => {
             if (col.cards?.some((c) => c.id === cardId)) {
                 oldColId = col.id;
@@ -152,12 +151,14 @@ export default function KanbanBoard({
         if (!movedCard) return;
         const targetColId = newColId ?? oldColId;
 
+        // Sauvegarder modification carte côté serveur
         await fetch(`/api/cards/${cardId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ...updatedData }),
         });
 
+        // Ajouter la carte modifiée dans la nouvelle colonne
         const updatedColumns = intermediateColumns.map((col) =>
             col.id === targetColId
                 ? { ...col, cards: [...(col.cards ?? []), movedCard!] }
@@ -168,6 +169,7 @@ export default function KanbanBoard({
         setSelectedCard(null);
     };
 
+    // Supprimer une carte
     const handleCardDelete = async (cardId: number | string) => {
         await fetch(`/api/cards/${cardId}`, { method: "DELETE" });
 
@@ -179,6 +181,7 @@ export default function KanbanBoard({
         setSelectedCard(null);
     };
 
+    // Met à jour l’ordre des cartes dans une colonne via API
     async function updateCardOrder(columnId: string | number, cards: CardElement[]) {
         await fetch("/api/cards/reorder", {
             method: "PUT",
@@ -187,6 +190,7 @@ export default function KanbanBoard({
         });
     }
 
+    // Déplacer une carte vers le haut dans la colonne
     const moveCardUp = async (columnId: number | string, cardId: number | string) => {
         const newCols = kanban.columns.map((col) => {
             if (col.id !== columnId) return col;
@@ -196,28 +200,20 @@ export default function KanbanBoard({
                 const updatedCards = [...col.cards];
                 [updatedCards[idx - 1], updatedCards[idx]] = [updatedCards[idx], updatedCards[idx - 1]];
 
-                // Met à jour l'ordre localement
-                const cardsWithNewOrder = updatedCards.map((card, i) => ({
-                    id: card.id,
-                    order: i,
-                }));
-
-                // on met à jour les cards avec le nouvel ordre localement pour affichage
                 return { ...col, cards: updatedCards.map((c, i) => ({ ...c, order: i })) };
             }
             return col;
         });
 
-        // Appelle l'API pour sauvegarder
         const movedColumn = newCols.find((col) => col.id === columnId);
         if (movedColumn) {
-            await updateCardOrder(columnId, movedColumn.cards.map(({ title, id, order }) => ({ title, id, order })));
+            await updateCardOrder(columnId, movedColumn.cards);
         }
 
-        // Puis met à jour l'état local
         updateKanbanColumns(newCols);
     };
 
+    // Déplacer une carte vers le bas dans la colonne
     const moveCardDown = async (columnId: number | string, cardId: number | string) => {
         const newCols = kanban.columns.map((col) => {
             if (col.id !== columnId) return col;
@@ -227,25 +223,16 @@ export default function KanbanBoard({
                 const updatedCards = [...col.cards];
                 [updatedCards[idx], updatedCards[idx + 1]] = [updatedCards[idx + 1], updatedCards[idx]];
 
-                // Met à jour l'ordre localement
-                const cardsWithNewOrder = updatedCards.map((card, i) => ({
-                    id: card.id,
-                    order: i,
-                }));
-
-                // Mise à jour locale des cards avec l'ordre correct
                 return { ...col, cards: updatedCards.map((c, i) => ({ ...c, order: i })) };
             }
             return col;
         });
 
-        // Appelle l'API pour sauvegarder
         const movedColumn = newCols.find((col) => col.id === columnId);
         if (movedColumn) {
-            await updateCardOrder(columnId, movedColumn.cards.map(({ title, id, order }) => ({ title, id, order })));
+            await updateCardOrder(columnId, movedColumn.cards);
         }
 
-        // Puis met à jour l'état local
         updateKanbanColumns(newCols);
     };
 
@@ -308,7 +295,7 @@ export default function KanbanBoard({
                             </div>
                         )}
 
-                        <ul style={{ listStyle: "none", padding: 0, minHeight: 100 }}>
+                        <ul style={{ listStyle: "none", padding: 0, minHeight: 100, overflowY: "auto" }}>
                             {(col.cards ?? [])
                                 .slice() // copie pour ne pas muter l'état
                                 .sort((a, b) => a.order - b.order)
@@ -321,7 +308,6 @@ export default function KanbanBoard({
                                             onMoveDown={() => moveCardDown(col.id, card.id)}
                                             isFirst={idx === 0}
                                             isLast={idx === col.cards.length - 1}
-                                        // style={{ minHeight: 100 }}
                                         />
                                     </li>
                                 ))}
@@ -385,9 +371,21 @@ export default function KanbanBoard({
                 <CardModal
                     card={selectedCard}
                     kanbanColumns={kanban.columns}
+                    allLabels={[]}
+                    allUsers={[]}
                     onClose={() => setSelectedCard(null)}
                     onSave={handleCardSave}
                     onDelete={handleCardDelete}
+                // onUpdate={(updatedCard) => {
+                //     const updatedColumns = kanban.columns.map((col) => ({
+                //         ...col,
+                //         cards: col.cards.map((c) =>
+                //             c.id === updatedCard.id ? updatedCard : c
+                //         ),
+                //     }));
+                //     updateKanbanColumns(updatedColumns);
+                //     setSelectedCard(updatedCard); // met aussi à jour la modale ouverte
+                // }}
                 />
             )}
         </section>

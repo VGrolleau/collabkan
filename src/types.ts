@@ -17,11 +17,12 @@ export type CardElement = {
     title: string;
     description?: string;
     labels?: Label[];
-    dueDate?: string;
+    dueDate?: Date | null;
     checklist?: ChecklistItem[];
     comments?: Comment[];
     assignees?: Assignee[];
     attachments?: Attachment[];
+    columnId: string;
 };
 
 export type ChecklistItem = {
@@ -46,6 +47,8 @@ export type Comment = {
 export type Assignee = {
     id: string;
     name: string;
+    email: string;
+    role: string;
     avatarUrl?: string;
 };
 

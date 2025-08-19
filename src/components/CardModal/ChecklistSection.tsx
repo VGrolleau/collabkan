@@ -1,90 +1,113 @@
+import { FC, useCallback } from "react";
 import { ChecklistItem } from "@/types";
 
-type Props = {
+type ChecklistSectionProps = {
     checklist: ChecklistItem[];
-    setChecklist: (items: ChecklistItem[]) => void;
-    newItem: string;
-    setNewItem: (val: string) => void;
-    onDelete: () => void;
+    cardId: string;
+    onChange: (items: ChecklistItem[]) => void;
 };
 
-export function ChecklistSection({ checklist, setChecklist, newItem, setNewItem, onDelete }: Props) {
-    const updateChecklistItem = (index: number, updated: Partial<ChecklistItem>) => {
-        const copy = [...checklist];
-        copy[index] = { ...copy[index], ...updated };
-        setChecklist(copy);
-    };
-
-    const removeChecklistItem = (index: number) => {
-        setChecklist(checklist.filter((_, i) => i !== index));
-    };
-
-    const addChecklistItem = () => {
-        if (newItem.trim()) {
-            setChecklist([...checklist, { text: newItem.trim(), done: false }]);
-            setNewItem("");
-        }
-    };
-
-    const progress = checklist.length
-        ? Math.round((checklist.filter(i => i.done).length / checklist.length) * 100)
+const ChecklistSection: FC<ChecklistSectionProps> = ({ checklist, cardId, onChange }) => {
+    // Calcul du pourcentage de complétion
+    const completion = checklist.length
+        ? Math.round((checklist.filter((i) => i.done).length / checklist.length) * 100)
         : 0;
 
-    return (
-        <div className="card-section">
-            <div className="section-header">
-                <h3>Checklist</h3>
-                <button onClick={onDelete}>🗑️</button>
-            </div>
+    // Auto-resize des textareas
+    const autoResize = useCallback((el: HTMLTextAreaElement | null) => {
+        if (el) {
+            el.style.height = "auto";
+            el.style.height = `${el.scrollHeight}px`;
+        }
+    }, []);
 
-            {checklist.length > 0 && (
-                <div className="progress-bar" style={{ marginBottom: "1rem" }}>
-                    <div
+    // Toggle d’un item (done)
+    const toggleDone = async (index: number) => {
+        const item = checklist[index];
+        const updated = { ...item, done: !item.done };
+
+        // Optimistic UI
+        const newList = [...checklist];
+        newList[index] = updated;
+        onChange(newList);
+
+        // Persist côté serveur
+        await fetch(`/api/checklist-items/${item.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ done: updated.done }),
+        });
+    };
+
+    // Modification du texte d’un item
+    const updateText = async (index: number, text: string) => {
+        const item = checklist[index];
+        const updated = { ...item, text };
+
+        const newList = [...checklist];
+        newList[index] = updated;
+        onChange(newList);
+
+        await fetch(`/api/checklist-items/${item.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+        });
+    };
+
+    // Ajouter un nouvel item
+    const addItem = async () => {
+        const res = await fetch(`/api/checklist-items`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: "", done: false, cardId }),
+        });
+        const created: ChecklistItem = await res.json();
+        onChange([...checklist, created]);
+    };
+
+    // Supprimer un item
+    const removeItem = async (index: number) => {
+        const item = checklist[index];
+        const newList = [...checklist];
+        newList.splice(index, 1);
+        onChange(newList);
+
+        await fetch(`/api/checklist-items/${item.id}`, {
+            method: "DELETE",
+        });
+    };
+
+    return (
+        <div>
+            <h4>Checklist ({completion}%)</h4>
+            <progress value={completion} max={100} style={{ width: "100%" }} />
+
+            {checklist.map((item, idx) => (
+                <div key={item.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                    <input
+                        type="checkbox"
+                        checked={item.done}
+                        onChange={() => toggleDone(idx)}
+                    />
+                    <textarea
+                        ref={autoResize}
+                        value={item.text}
+                        onChange={(e) => updateText(idx, e.target.value)}
+                        placeholder="Nouvel item"
+                        rows={1}
                         style={{
-                            background: "#4caf50",
-                            height: "8px",
-                            width: `${progress}%`,
-                            transition: "width 0.3s"
+                            flex: 1,
+                            resize: "none",
+                            overflow: "hidden",
                         }}
                     />
-                    <small>{progress}%</small>
+                    <button onClick={() => removeItem(idx)}>✖️</button>
                 </div>
-            )}
-
-            <ul>
-                {checklist.map((item, idx) => (
-                    <li key={idx} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <input
-                            type="checkbox"
-                            checked={item.done}
-                            onChange={() => updateChecklistItem(idx, { done: !item.done })}
-                        />
-                        <input
-                            type="text"
-                            value={item.text}
-                            onChange={e => updateChecklistItem(idx, { text: e.target.value })}
-                            style={{ flex: 1 }}
-                        />
-                        <button onClick={() => removeChecklistItem(idx)}>❌</button>
-                    </li>
-                ))}
-            </ul>
-
-            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-                <input
-                    type="text"
-                    placeholder="Nouvel élément"
-                    value={newItem}
-                    onChange={e => setNewItem(e.target.value)}
-                    onKeyDown={e => {
-                        if (e.key === "Enter") {
-                            e.preventDefault();
-                            addChecklistItem();
-                        }
-                    }}
-                />
-                <button onClick={addChecklistItem}>Ajouter</button>
-            </div>
+            ))}
+            <button onClick={addItem}>+ Ajouter un item</button>
         </div>
     );
-}
+};
+
+export default ChecklistSection;

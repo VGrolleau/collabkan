@@ -1,88 +1,104 @@
-"use client"
+// src/components/CardModal/AttachmentsSection.tsx
+"use client";
 
-import { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Attachment } from "@/types";
 
-type Props = {
+type AttachmentsSectionProps = {
     attachments: Attachment[];
-    setAttachments: (attachments: Attachment[]) => void;
-    onDelete: () => void;
+    setAttachments: (newAttachments: Attachment[]) => void;
+    cardId: string;
 };
 
-export function AttachmentsSection({ attachments, setAttachments, onDelete }: Props) {
-    const [newFilename, setNewFilename] = useState("");
-    const [newUrl, setNewUrl] = useState("");
+const AttachmentsSection: React.FC<AttachmentsSectionProps> = ({
+    attachments,
+    setAttachments,
+    cardId,
+}) => {
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [uploading, setUploading] = useState(false);
 
-    // Simuler upload et renvoyer une url locale (ou tu peux remplacer par un vrai upload)
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
 
-        const url = URL.createObjectURL(file); // url locale temporaire
-        const newAttachment: Attachment = {
-            id: Date.now(),
-            filename: file.name,
-            url,
-        };
-        setAttachments([...attachments, newAttachment]);
+        setUploading(true);
+
+        const file = e.target.files[0];
+
+        try {
+            // 1️⃣ Upload vers le serveur
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("cardId", cardId);
+
+            const res = await fetch("/api/attachments/upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!res.ok) throw new Error("Erreur upload fichier");
+
+            const newAttachment: Attachment = await res.json();
+
+            // 2️⃣ Mettre à jour l'état local
+            setAttachments([...attachments, newAttachment]);
+        } catch (error) {
+            console.error(error);
+            alert("Erreur lors de l’upload du fichier");
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
     };
 
-    const handleAddUrl = () => {
-        if (!newFilename.trim() || !newUrl.trim()) return;
-        const newAttachment: Attachment = {
-            id: Date.now(),
-            filename: newFilename.trim(),
-            url: newUrl.trim(),
-        };
-        setAttachments([...attachments, newAttachment]);
-        setNewFilename("");
-        setNewUrl("");
-    };
-
-    const handleRemove = (id: number) => {
-        setAttachments(attachments.filter(a => a.id !== id));
+    const handleRemove = async (id: string) => {
+        try {
+            const res = await fetch(`/api/attachments/${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Erreur suppression fichier");
+            setAttachments(attachments.filter((att) => att.id !== id));
+        } catch (error) {
+            console.error(error);
+            alert("Impossible de supprimer le fichier");
+        }
     };
 
     return (
-        <div className="card-section">
-            <div className="section-header" style={{ display: "flex", justifyContent: "space-between" }}>
-                <h3>Pièces jointes</h3>
-                <button onClick={onDelete}>🗑️</button>
-            </div>
+        <div style={{ marginBottom: 16 }}>
+            <h4>Pièces jointes</h4>
 
-            <ul>
-                {attachments.map(a => (
-                    <li key={a.id} style={{ marginBottom: 8 }}>
-                        <a href={a.url} target="_blank" rel="noopener noreferrer">{a.filename}</a>
-                        <button onClick={() => handleRemove(a.id)} style={{ marginLeft: "0.5rem" }}>❌</button>
+            <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileChange}
+                disabled={uploading}
+                style={{ marginBottom: 8 }}
+            />
+
+            <ul style={{ listStyle: "none", padding: 0 }}>
+                {attachments.map((att) => (
+                    <li
+                        key={att.id}
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            marginBottom: 4,
+                            alignItems: "center",
+                        }}
+                    >
+                        <a
+                            href={att.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ textDecoration: "underline", color: "#0070f3" }}
+                        >
+                            {att.filename}
+                        </a>
+                        <button onClick={() => handleRemove(att.id)}>Supprimer</button>
                     </li>
                 ))}
             </ul>
-
-            <div>
-                <label>
-                    Ajouter un fichier :
-                    <input type="file" onChange={handleFileChange} />
-                </label>
-            </div>
-
-            <div style={{ marginTop: "1rem" }}>
-                <input
-                    type="text"
-                    placeholder="Nom du fichier"
-                    value={newFilename}
-                    onChange={e => setNewFilename(e.target.value)}
-                    style={{ marginRight: 8 }}
-                />
-                <input
-                    type="text"
-                    placeholder="URL du fichier"
-                    value={newUrl}
-                    onChange={e => setNewUrl(e.target.value)}
-                    style={{ marginRight: 8 }}
-                />
-                <button onClick={handleAddUrl} disabled={!newFilename.trim() || !newUrl.trim()}>Ajouter via URL</button>
-            </div>
         </div>
     );
-}
+};
+
+export default AttachmentsSection;

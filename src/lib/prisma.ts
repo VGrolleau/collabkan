@@ -1,6 +1,16 @@
-// src/lib/prisma.ts
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+declare global {
+    // On garde une instance globale pour éviter les doublons en dev
+    var prisma: PrismaClient | undefined;
+}
 
-export default prisma;
+export const prisma =
+    global.prisma ??
+    new PrismaClient({
+        log: ["query", "error", "warn"],
+    });
+
+if (process.env.NODE_ENV !== "production") {
+    global.prisma = prisma;
+}

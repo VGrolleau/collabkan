@@ -29,7 +29,7 @@ model Kanban {
   description String?
   columns     Column[]
   invitations Invitation[]
-  owner       User         @relation("KanbanOwner", fields: [ownerId], references: [id])
+  owner       User         @relation("KanbanOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members     User[]       @relation("UserKanbans")
 }
 
@@ -49,6 +49,7 @@ model Card {
   createdAt   DateTime        @default(now())
   description String?
   title       String
+  dueDate     DateTime?
   attachments Attachment[]
   column      Column          @relation(fields: [columnId], references: [id], onDelete: Cascade)
   checklist   ChecklistItem[]
@@ -69,7 +70,7 @@ model ChecklistItem {
   text   String
   done   Boolean @default(false)
   cardId String
-  card   Card    @relation(fields: [cardId], references: [id])
+  card   Card    @relation(fields: [cardId], references: [id], onDelete: Cascade)
 }
 
 model Comment {
@@ -78,8 +79,8 @@ model Comment {
   authorId  String
   cardId    String
   createdAt DateTime @default(now())
-  author    User     @relation(fields: [authorId], references: [id])
-  card      Card     @relation(fields: [cardId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
 }
 
 model Attachment {
@@ -87,7 +88,7 @@ model Attachment {
   filename String
   url      String
   cardId   String
-  card     Card   @relation(fields: [cardId], references: [id])
+  card     Card   @relation(fields: [cardId], references: [id], onDelete: Cascade)
 }
 
 model Invitation {
@@ -99,7 +100,7 @@ model Invitation {
   createdAt DateTime  @default(now())
   used      Boolean   @default(false)
   usedAt    DateTime?
-  kanban    Kanban    @relation(fields: [kanbanId], references: [id])
+  kanban    Kanban    @relation(fields: [kanbanId], references: [id], onDelete: Cascade)
 }
 
 enum Role {

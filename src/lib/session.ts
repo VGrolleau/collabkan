@@ -1,5 +1,5 @@
 // src/lib/session.ts
-import prisma from './prisma';
+import { prisma } from './prisma';
 import { parse } from 'cookie';
 import type { User } from '@prisma/client';
 

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import prisma from '../../../../lib/prisma';
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
     try {
@@ -13,8 +13,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         });
         return NextResponse.json(updated);
     } catch (error) {
-        console.error('PUT /api/checklist-items/[id] error:', error);
-        return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+        console.error("PUT /api/checklist-items/[id] error:", error);
+        return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
     }
 }
 
@@ -23,7 +23,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
         await prisma.checklistItem.delete({ where: { id: params.id } });
         return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('DELETE /api/checklist-items/[id] error:', error);
-        return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+        console.error("DELETE /api/checklist-items/[id] error:", error);
+        return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
     }
 }

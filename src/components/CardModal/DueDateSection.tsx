@@ -1,62 +1,32 @@
+// src/components/CardModal/DueDateSection.tsx
 "use client";
 
-import { useState } from "react";
+import { FC } from "react";
 import DatePicker from "react-datepicker";
-import { fr } from "date-fns/locale";
-// import { format, isBefore } from "date-fns";
-// import { CalendarDays, X } from "lucide-react"; // icônes
+import "react-datepicker/dist/react-datepicker.css";
 
-type Props = {
-    dueDate?: string;
-    setDueDate: (date: string | undefined) => void;
-    onDelete: () => void;
+type DueDateSectionProps = {
+    dueDate: string | Date | null;
+    onChange: (date: Date | null) => void;
 };
 
-export function DueDateSection({ dueDate, setDueDate, onDelete }: Props) {
-    const [selectedDate, setSelectedDate] = useState<Date | null>(
-        dueDate ? new Date(dueDate) : null
-    );
-
-    const handleChange = (date: Date | null) => {
-        setSelectedDate(date);
-        setDueDate(date ? date.toISOString() : undefined);
-    };
-
-    const now = new Date();
-
+export const DueDateSection: FC<DueDateSectionProps> = ({ dueDate, onChange }) => {
     return (
-        <div className="card-section">
-            <div className="section-header" style={{ display: "flex", justifyContent: "space-between" }}>
-                <h3>📆 Échéance</h3>
-                <button onClick={onDelete}>🗑️</button>
-            </div>
-
+        <div style={{ marginBottom: 16 }}>
+            <h4>Date d’échéance</h4>
             <DatePicker
-                selected={selectedDate}
-                onChange={handleChange}
+                selected={dueDate ? new Date(dueDate) : null}
+                onChange={(date) => onChange(date)}
                 showTimeSelect
+                timeFormat="HH:mm"
                 timeIntervals={15}
-                dateFormat="Pp"
-                locale={fr}
-                placeholderText="Choisir une date et une heure"
-                minDate={now}
-                className="your-input-style"
+                dateFormat="dd/MM/yyyy HH:mm"
+                placeholderText="Choisir date et heure"
+                isClearable
+                className="due-date-input"
             />
-
-            <div className="flex gap-2 mt-2">
-                <button
-                    className="btn-small"
-                    onClick={() => handleChange(new Date())}
-                >
-                    📍 Aujourd’hui
-                </button>
-                <button
-                    className="btn-small"
-                    onClick={() => handleChange(null)}
-                >
-                    ❌ Effacer
-                </button>
-            </div>
         </div>
     );
-}
+};
+
+export default DueDateSection;

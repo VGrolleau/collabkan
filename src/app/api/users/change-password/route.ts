@@ -1,6 +1,6 @@
 // src/app/api/users/change-password/route.ts
 import { compare, hash } from "bcrypt";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { getUserFromRequest } from "@/lib/session"; // par exemple
 
 export async function POST(req: Request) {

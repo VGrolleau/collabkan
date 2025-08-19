@@ -1,81 +1,131 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import TextAlign from "@tiptap/extension-text-align";
+import { useEffect, useRef, useState } from "react";
+import type QuillType from "quill";
+import "quill/dist/quill.snow.css";
 
-type Props = {
-    description: string;
-    setDescription: (val: string) => void;
-    onDelete: () => void;
+type DescriptionSectionProps = {
+    value: string;
+    onChange: (val: string) => void;
 };
 
-export function DescriptionSection({ description, setDescription, onDelete }: Props) {
-    const editor = useEditor({
-        extensions: [
-            StarterKit,
-            TextAlign.configure({
-                types: ["heading", "paragraph"],
-            }),
-        ],
-        content: description,
-        onUpdate: ({ editor }) => {
-            setDescription(editor.getHTML());
-        },
-        immediatelyRender: false,
-    });
+export default function DescriptionSection({ value, onChange }: DescriptionSectionProps) {
+    const editorRef = useRef<HTMLDivElement | null>(null);
+    const toolbarRef = useRef<HTMLDivElement | null>(null);
+    const quillRef = useRef<QuillType | null>(null);
+    const [isClient, setIsClient] = useState(false);
 
-    // Mise à jour si description externe change (ex: reset)
     useEffect(() => {
-        if (editor && editor.getHTML() !== description) {
-            editor.commands.setContent(description, { emitUpdate: false });
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isClient || !editorRef.current || quillRef.current) return;
+
+        import("quill").then((Quill) => {
+            quillRef.current = new Quill.default(editorRef.current!, {
+                theme: "snow",
+                modules: {
+                    toolbar: toolbarRef.current!,
+                },
+                placeholder: "Écrire la description ici...",
+            });
+
+            quillRef.current.root.innerHTML = value || "";
+
+            quillRef.current.on("text-change", () => {
+                const html = quillRef.current!.root.innerHTML;
+                if (html !== value) {
+                    onChange(html);
+                }
+            });
+        });
+    }, [isClient, value, onChange]);
+
+    // Sync si value externe change
+    useEffect(() => {
+        if (quillRef.current && quillRef.current.root.innerHTML !== value) {
+            quillRef.current.root.innerHTML = value;
         }
-    }, [description, editor]);
-
-
-    if (!editor) {
-        return null;
-    }
+    }, [value]);
 
     return (
-        <div className="description-section">
-            <div className="toolbar" style={{ marginBottom: "0.5rem" }}>
-                <button onClick={() => editor.chain().focus().toggleBold().run()} disabled={!editor.can().chain().focus().toggleBold().run()}>
-                    <b>B</b>
-                </button>
-                <button onClick={() => editor.chain().focus().toggleItalic().run()} disabled={!editor.can().chain().focus().toggleItalic().run()}>
-                    <i>I</i>
-                </button>
-                <button onClick={() => editor.chain().focus().toggleBulletList().run()} disabled={!editor.can().chain().focus().toggleBulletList().run()}>
-                    • Liste
-                </button>
-                <button onClick={() => editor.chain().focus().setTextAlign('left').run()}>
-                    ←
-                </button>
-                <button onClick={() => editor.chain().focus().setTextAlign('center').run()}>
-                    •
-                </button>
-                <button onClick={() => editor.chain().focus().setTextAlign('right').run()}>
-                    →
-                </button>
-                <button onClick={onDelete} style={{ float: "right", color: "red" }}>
-                    🗑️ Supprimer
-                </button>
-            </div>
+        <div
+            style={{
+                marginBottom: 16,
+                position: "relative"
+            }}
+        >
+            <h4>Description</h4>
 
             <div
+                ref={toolbarRef}
                 style={{
                     border: "1px solid #ccc",
-                    borderRadius: "4px",
-                    minHeight: "100px",
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                    padding: "0.5rem",
+                    borderRadius: 4,
+                    marginBottom: 4,
+                    padding: 4,
+                    background: "#f0f0f0",
+                    display: "flex",
+                    gap: 8,
+                    overflowX: "auto",
+                    position: "relative"
                 }}
             >
-                <EditorContent editor={editor} />
+                {/* Styles de texte */}
+                <span className="ql-formats">
+                    <button className="ql-bold"></button>
+                    <button className="ql-italic"></button>
+                    <button className="ql-underline"></button>
+                    <button className="ql-strike"></button>
+                </span>
+
+                {/* Titres / paragraphes */}
+                <span className="ql-formats">
+                    <button className="ql-header" value="1">H1</button>
+                    <button className="ql-header" value="2">H2</button>
+                    <button className="ql-header" value="3">H3</button>
+                    <button className="ql-header" value="">P</button> {/* Normal / paragraphe */}
+                </span>
+
+                {/* Listes */}
+                <span className="ql-formats">
+                    <button className="ql-list" value="ordered"></button>
+                    <button className="ql-list" value="bullet"></button>
+                </span>
+
+                {/* Alignement */}
+                <span className="ql-formats">
+                    <button className="ql-align" value=""></button>      {/* align left */}
+                    <button className="ql-align" value="center"></button>
+                    <button className="ql-align" value="right"></button>
+                    <button className="ql-align" value="justify"></button>
+                </span>
+
+                {/* Liens / images */}
+                <span className="ql-formats">
+                    <button className="ql-link"></button>
+                    <button className="ql-image"></button>
+                </span>
+
+                {/* Nettoyage */}
+                <span className="ql-formats">
+                    <button className="ql-clean"></button>
+                </span>
             </div>
+
+            {/* Éditeur */}
+            <div
+                ref={editorRef}
+                style={{
+                    height: 150,
+                    padding: 8,
+                    borderRadius: 4,
+                    border: "1px solid #ccc",
+                    overflowY: "auto",
+                    backgroundColor: "#fff",
+                }}
+            />
         </div>
     );
 }

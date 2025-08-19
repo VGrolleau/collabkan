@@ -1,134 +1,132 @@
-import { useState } from "react";
+"use client";
+
+import { FC, useEffect, useState } from "react";
 import { Label } from "@/types";
 
 type CardLabelsProps = {
-    allLabels: Label[];
+    cardId: string;
     selectedLabels: Label[];
     onChange: (labels: Label[]) => void;
-    onDelete: () => void;
-    onAdd: (name: string, color: string) => void;
-    onUpdate: (label: Label) => void;
-    onRemove: (id: number) => void;
+    allLabels?: Label[]; // <--- ajoute cette ligne
 };
 
-export function CardLabels({
-    allLabels,
-    selectedLabels,
-    onChange,
-    onDelete,
-    onAdd,
-    onUpdate,
-    onRemove,
-}: CardLabelsProps) {
-    const [newLabelName, setNewLabelName] = useState("");
-    const [newLabelColor, setNewLabelColor] = useState("#000000");
-    const [error, setError] = useState("");
+const CardLabels: FC<CardLabelsProps> = ({ cardId, selectedLabels, onChange }) => {
+    const [allLabels, setAllLabels] = useState<Label[]>([]);
+    const [newName, setNewName] = useState("");
+    const [newColor, setNewColor] = useState("#cccccc");
 
+    // Charger tous les labels existants
+    useEffect(() => {
+        fetch("/api/labels")
+            .then(res => res.json())
+            .then((labels: Label[]) => setAllLabels(labels))
+            .catch(console.error);
+    }, []);
+
+    // Sélection / désélection d’un label pour la carte
     const toggleLabel = (label: Label) => {
-        const isSelected = selectedLabels.some(l => l.id === label.id);
-        if (isSelected) {
-            onChange(selectedLabels.filter(l => l.id !== label.id));
-        } else {
-            onChange([...selectedLabels, label]);
+        const newSelection = selectedLabels.some(l => l.id === label.id)
+            ? selectedLabels.filter(l => l.id !== label.id)
+            : [...selectedLabels, label];
+        onChange(newSelection);
+    };
+
+    // Ajouter un label global et l’associer à la carte
+    const addLabel = async () => {
+        if (!newName.trim()) return;
+
+        try {
+            const res = await fetch("/api/labels", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: newName, color: newColor, cardId }),
+            });
+
+            if (!res.ok) throw new Error("Erreur lors de la création du label");
+
+            const newLabel: Label = await res.json();
+            setAllLabels(prev => [...prev, newLabel]);
+            onChange([...selectedLabels, newLabel]);
+            setNewName("");
+            setNewColor("#cccccc");
+        } catch (err) {
+            console.error(err);
         }
     };
 
-    const handleAdd = () => {
-        const trimmedName = newLabelName.trim();
-        if (!trimmedName) {
-            setError("Le nom du label est requis");
-            return;
+    // Supprimer un label global
+    const deleteLabel = async (id: string) => {
+        try {
+            await fetch(`/api/labels/${id}`, { method: "DELETE" });
+            setAllLabels(prev => prev.filter(l => l.id !== id));
+            onChange(selectedLabels.filter(l => l.id !== id)); // retirer de la sélection si présent
+        } catch (err) {
+            console.error(err);
         }
-
-        const duplicate = allLabels.some(
-            label => label.name.trim().toLowerCase() === trimmedName.toLowerCase()
-        );
-        if (duplicate) {
-            setError("Un label avec ce nom existe déjà");
-            return;
-        }
-
-        onAdd(trimmedName, newLabelColor);
-        setNewLabelName("");
-        setNewLabelColor("#000000");
-        setError("");
-    };
-
-    const handleLabelUpdate = (id: number, name: string, color: string) => {
-        const updated = { id, name, color };
-        onUpdate(updated);
     };
 
     return (
-        <div className="card-labels">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h4>Labels</h4>
-                <button onClick={onDelete}>✖</button>
-            </div>
+        <div>
+            <h4>Étiquettes</h4>
 
-            <div className="label-list">
+            {/* Liste des labels existants */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
                 {allLabels.map(label => (
-                    <div
-                        key={label.id}
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "4px 0",
-                            borderBottom: "1px solid #eee",
-                        }}
-                    >
-                        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                            <input
-                                type="checkbox"
-                                checked={selectedLabels.some(l => l.id === label.id)}
-                                onChange={() => toggleLabel(label)}
-                            />
-                            <span
-                                style={{
-                                    backgroundColor: label.color,
-                                    padding: "2px 6px",
-                                    borderRadius: "4px",
-                                    color: "#fff",
-                                    fontSize: "0.9rem",
-                                }}
-                            >
-                                {label.name}
-                            </span>
-                        </label>
-
-                        <div style={{ display: "flex", gap: "0.3rem", alignItems: "center" }}>
-                            {/* Edition directe ici — tu peux le désactiver si besoin */}
-                            <input
-                                type="color"
-                                value={label.color}
-                                onChange={e => handleLabelUpdate(label.id, label.name, e.target.value)}
-                            />
-                            <button onClick={() => onRemove(label.id)} title="Supprimer">🗑️</button>
-                        </div>
+                    <div key={label.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <button
+                            onClick={() => toggleLabel(label)}
+                            style={{
+                                padding: "2px 8px",
+                                borderRadius: 4,
+                                border: selectedLabels.some(l => l.id === label.id)
+                                    ? "2px solid black"
+                                    : "1px solid #ccc",
+                                backgroundColor: label.color,
+                                cursor: "pointer",
+                            }}
+                        >
+                            {label.name}
+                        </button>
+                        <button
+                            onClick={() => deleteLabel(label.id)}
+                            title="Supprimer le label"
+                            style={{ cursor: "pointer", border: "none", background: "transparent" }}
+                        >
+                            ✖️
+                        </button>
                     </div>
                 ))}
             </div>
 
-            <div style={{ marginTop: "1rem" }}>
-                <h5>Ajouter un label</h5>
-                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                    <input
-                        type="text"
-                        placeholder="Nom"
-                        value={newLabelName}
-                        onChange={e => setNewLabelName(e.target.value)}
-                        style={{ flex: 1 }}
-                    />
-                    <input
-                        type="color"
-                        value={newLabelColor}
-                        onChange={e => setNewLabelColor(e.target.value)}
-                    />
-                    <button onClick={handleAdd}>Ajouter</button>
-                </div>
-                {error && <p style={{ color: "red", fontSize: "0.8rem" }}>{error}</p>}
+            {/* Formulaire d’ajout */}
+            <div style={{ display: "flex", gap: 4 }}>
+                <input
+                    placeholder="Nom"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    style={{ flex: 1, padding: 4, borderRadius: 4, border: "1px solid #ccc" }}
+                />
+                <input
+                    type="color"
+                    value={newColor}
+                    onChange={(e) => setNewColor(e.target.value)}
+                    style={{ width: 40, height: 32, border: "none", padding: 0 }}
+                />
+                <button
+                    onClick={addLabel}
+                    style={{
+                        padding: "4px 8px",
+                        borderRadius: 4,
+                        border: "1px solid #ccc",
+                        cursor: "pointer",
+                        background: "#eee",
+                    }}
+                >
+                    ➕
+                </button>
             </div>
         </div>
     );
-}
+};
+
+export default CardLabels;

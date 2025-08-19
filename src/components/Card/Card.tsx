@@ -13,10 +13,10 @@ type CardProps = {
     isLast: boolean;
 };
 
-function DueDateTag({ dueDate }: { dueDate?: string }) {
+function DueDateTag({ dueDate }: { dueDate?: string | Date | null }) {
     if (!dueDate) return null;
 
-    const date = new Date(dueDate);
+    const date = typeof dueDate === "string" ? new Date(dueDate) : dueDate;
     const now = new Date();
 
     let colorClass = styles.grey;

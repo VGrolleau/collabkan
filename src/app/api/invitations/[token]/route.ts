@@ -1,5 +1,5 @@
 // src/app/api/invitations/[token]/route.ts
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
 type Params = { params: { token: string } };

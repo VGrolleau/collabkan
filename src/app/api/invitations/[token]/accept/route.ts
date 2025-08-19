@@ -1,5 +1,5 @@
 // src/app/api/invitations/[token]/accept/route.ts
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
 // Le type context permet de gérer le await pour récupérer params

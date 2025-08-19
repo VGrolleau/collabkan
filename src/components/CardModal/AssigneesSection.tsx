@@ -1,47 +1,79 @@
-"use client"
+// src/components/CardModal/AssigneesSection.tsx
+"use client";
 
-// import { useState } from "react";
-import { Assignee } from "@/types";
+import React, { useEffect, useState } from "react";
+import { User } from "@/types";
 
-type Props = {
-    assignees: Assignee[];
-    setAssignees: (assignees: Assignee[]) => void;
-    allUsers: Assignee[];
-    onDelete: () => void;
+type AssigneesSectionProps = {
+    assignees: User[];
+    allUsers: User[];
+    onChange: (newAssignees: User[]) => void;
+    cardId?: string; // optionnel si besoin
 };
 
-export function AssigneesSection({ assignees, setAssignees, allUsers, onDelete }: Props) {
-    const handleToggle = (user: Assignee) => {
-        const exists = assignees.some(a => a.id === user.id);
+const AssigneesSection: React.FC<AssigneesSectionProps> = ({
+    assignees,
+    onChange,
+}) => {
+    const [allUsers, setAllUsers] = useState<User[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const res = await fetch("/api/users");
+                if (!res.ok) throw new Error("Impossible de récupérer les utilisateurs");
+                const data: User[] = await res.json();
+                setAllUsers(data);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUsers();
+    }, []);
+
+    const toggleAssignee = (user: User) => {
+        const exists = assignees.some((u) => u.id === user.id);
         if (exists) {
-            setAssignees(assignees.filter(a => a.id !== user.id));
+            onChange(assignees.filter((u) => u.id !== user.id));
         } else {
-            setAssignees([...assignees, user]);
+            onChange([...assignees, user]);
         }
     };
 
-    return (
-        <div className="card-section">
-            <div className="section-header" style={{ display: "flex", justifyContent: "space-between" }}>
-                <h3>Assignés</h3>
-                <button onClick={onDelete}>🗑️</button>
-            </div>
+    if (loading) return <p>Chargement des utilisateurs…</p>;
 
-            <ul style={{ maxHeight: 200, overflowY: "auto" }}>
-                {allUsers.map(user => (
-                    <li key={user.id} style={{ cursor: "pointer", userSelect: "none", display: "flex", alignItems: "center" }}
-                        onClick={() => handleToggle(user)}>
-                        <input
-                            type="checkbox"
-                            checked={assignees.some(a => a.id === user.id)}
-                            readOnly
-                            style={{ marginRight: 8 }}
-                        />
-                        {user.avatarUrl && <img src={user.avatarUrl} alt={user.name} style={{ width: 24, height: 24, borderRadius: "50%", marginRight: 8 }} />}
-                        {user.name}
-                    </li>
-                ))}
-            </ul>
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <h4>Assignés</h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {allUsers.map((user) => {
+                    const selected = assignees.some((a) => a.id === user.id);
+                    return (
+                        <label
+                            key={user.id}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                cursor: "pointer",
+                            }}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => toggleAssignee(user)}
+                            />
+                            {user.name} ({user.email})
+                        </label>
+                    );
+                })}
+            </div>
         </div>
     );
-}
+};
+
+export default AssigneesSection;
