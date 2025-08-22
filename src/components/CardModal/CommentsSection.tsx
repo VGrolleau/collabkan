@@ -2,6 +2,7 @@
 
 import { FC, useEffect, useState } from "react";
 import { Comment, User } from "@/types";
+import styles from "./CardModal.module.scss";
 
 type CommentsSectionProps = {
     cardId: string;
@@ -83,15 +84,12 @@ export const CommentsSection: FC<CommentsSectionProps> = ({
     };
 
     return (
-        <div className="comments-section" style={{ marginTop: 12 }}>
+        <div className={styles.commentsSection}>
             <h4>Commentaires</h4>
 
-            <ul style={{ listStyle: "none", padding: 0 }}>
+            <ul>
                 {comments.map((comment) => (
-                    <li
-                        key={comment.id}
-                        style={{ marginBottom: 8, display: "flex", alignItems: "flex-start", gap: 8 }}
-                    >
+                    <li key={comment.id}>
                         <div style={{ flexGrow: 1 }}>
                             <p style={{ margin: 0 }}>
                                 <strong>{comment.author} :</strong> {comment.content}
@@ -109,7 +107,7 @@ export const CommentsSection: FC<CommentsSectionProps> = ({
                 ))}
             </ul>
 
-            <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
+            <div className={styles.newComment}>
                 <input
                     type="text"
                     placeholder={me ? "Ajouter un commentaire..." : "Connexion requise"}
@@ -119,9 +117,8 @@ export const CommentsSection: FC<CommentsSectionProps> = ({
                         if (e.key === "Enter") addComment();
                     }}
                     disabled={!me || sending}
-                    style={{ flexGrow: 1, padding: 6, borderRadius: 4, border: "1px solid #ccc" }}
                 />
-                <button onClick={addComment} disabled={!me || sending} style={{ padding: "6px 12px" }}>
+                <button onClick={addComment} disabled={!me || sending}>
                     ➕
                 </button>
             </div>

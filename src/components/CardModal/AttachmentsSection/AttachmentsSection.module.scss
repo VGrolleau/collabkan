@@ -1,0 +1,87 @@
+/* src/components/CardModal/AttachmentsSection/AttachmentsSection.module.scss */
+.section { 
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction:
+    column; gap:
+    10px;
+    
+    h4 {
+        font-weight: 800;
+        margin: 0 0 10px;
+        opacity: .9;
+    }
+}
+
+.attachmentsList {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.attachmentItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--input-bg);
+  gap: 8px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+
+    button {
+      opacity: 1;
+    }
+  }
+
+  a {
+    flex: 1;                 // prend tout l'espace disponible
+    overflow: hidden;        // cache le débordement
+    white-space: nowrap;     // pas de retour à la ligne
+    text-overflow: ellipsis; // affiche "…" si trop long
+    color: var(--link);
+    text-decoration: none;
+    transition: color 0.2s;
+
+    &:hover {
+      color: var(--text-primary);
+    }
+  }
+
+  button {
+    flex-shrink: 0;          // le bouton garde sa taille
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.btn {
+    background: rgba(255,255,255,.06);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    font: inherit;
+
+    &:hover {
+        background: rgba(255,255,255,.12);
+    }
+}

@@ -44,7 +44,6 @@ export function Card({ card, onClick, onMoveUp, onMoveDown, isFirst, isLast }: C
             <button
                 onClick={onClick}
                 className={styles.card}
-                style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "center", width: "100%", minHeight: 60 }}
             >
                 <div>{card.title}</div>
                 <DueDateTag dueDate={card.dueDate} />

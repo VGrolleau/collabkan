@@ -4,6 +4,7 @@
 import { FC } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import styles from "./DueDateSection.module.scss";
 
 type DueDateSectionProps = {
     dueDate: string | Date | null;
@@ -12,7 +13,7 @@ type DueDateSectionProps = {
 
 export const DueDateSection: FC<DueDateSectionProps> = ({ dueDate, onChange }) => {
     return (
-        <div style={{ marginBottom: 16 }}>
+        <div className={styles.section}>
             <h4>Date d’échéance</h4>
             <DatePicker
                 selected={dueDate ? new Date(dueDate) : null}

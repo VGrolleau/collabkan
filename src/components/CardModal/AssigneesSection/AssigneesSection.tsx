@@ -3,18 +3,14 @@
 
 import React, { useEffect, useState } from "react";
 import { User } from "@/types";
+import styles from "./AssigneesSection.module.scss";
 
 type AssigneesSectionProps = {
     assignees: User[];
-    allUsers: User[];
     onChange: (newAssignees: User[]) => void;
-    cardId?: string; // optionnel si besoin
 };
 
-const AssigneesSection: React.FC<AssigneesSectionProps> = ({
-    assignees,
-    onChange,
-}) => {
+const AssigneesSection: React.FC<AssigneesSectionProps> = ({ assignees, onChange }) => {
     const [allUsers, setAllUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -47,28 +43,25 @@ const AssigneesSection: React.FC<AssigneesSectionProps> = ({
     if (loading) return <p>Chargement des utilisateurs…</p>;
 
     return (
-        <div style={{ marginBottom: 16 }}>
-            <h4>Assignés</h4>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div className={styles.section}>
+            <h4>Membres</h4>
+            <div className={styles.members}>
                 {allUsers.map((user) => {
                     const selected = assignees.some((a) => a.id === user.id);
                     return (
-                        <label
+                        <button
                             key={user.id}
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 8,
-                                cursor: "pointer",
-                            }}
+                            type="button"
+                            onClick={() => toggleAssignee(user)}
+                            className={`${styles.avatar} ${selected ? styles.selected : ""}`}
+                            title={user.name}
                         >
-                            <input
-                                type="checkbox"
-                                checked={selected}
-                                onChange={() => toggleAssignee(user)}
-                            />
-                            {user.name} ({user.email})
-                        </label>
+                            {user.avatarUrl ? (
+                                <img src={user.avatarUrl} alt={user.name} />
+                            ) : (
+                                <span>{user.name[0]}</span>
+                            )}
+                        </button>
                     );
                 })}
             </div>

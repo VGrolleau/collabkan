@@ -1,0 +1,36 @@
+.section {
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.sectionTitle {
+  font-weight: 800;
+  margin: 0 0 10px;
+  opacity: .9;
+}
+
+.textarea {
+  width: 100%;
+  height: 150px;
+  resize: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font: inherit;
+  overflow-y: auto;
+}
+
+/* toolbar Quill */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  background: var(--list-bg);
+}

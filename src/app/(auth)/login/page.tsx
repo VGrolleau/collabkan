@@ -1,7 +1,9 @@
+// src/app/(auth)/login/page.tsx
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import ThemeToggleButton from '@/components/ThemeToggleButton'; // si tu as un bouton de thème
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -24,35 +26,48 @@ export default function LoginPage() {
             return;
         }
 
-        // Connexion réussie → redirige vers la page d’accueil
         router.push('/');
     };
 
     return (
-        <main className="flex items-center justify-center min-h-screen">
-            <form onSubmit={handleSubmit} className="p-6 border rounded w-80 space-y-4">
-                <h1 className="text-xl font-bold">Connexion</h1>
-                {error && <p className="text-red-600 text-sm">{error}</p>}
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full p-2 border rounded"
-                />
-                <input
-                    type="password"
-                    placeholder="Mot de passe"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full p-2 border rounded"
-                />
-                <button type="submit" className="w-full bg-black text-white p-2 rounded">
-                    Se connecter
-                </button>
-            </form>
-        </main>
+        <section className="auth">
+            <div className="auth-card">
+                <div className="auth-title">{`Se connecter à Collab'Kan`}</div>
+                <div className="auth-sub">Entrez vos identifiants pour accéder à vos tableaux.</div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {error && <p className="text-red-600 text-sm">{error}</p>}
+
+                    <div className="field">
+                        <label className="label">Email</label>
+                        <input
+                            type="email"
+                            className="input"
+                            placeholder="vous@exemple.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    <div className="field">
+                        <label className="label">Mot de passe</label>
+                        <input
+                            type="password"
+                            className="input"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                        />
+                    </div>
+
+                    <div className="btns-connection">
+                        <button type="submit" className="btn primary">Se connecter</button>
+                        <ThemeToggleButton className="btn" title="Basculer thème" />
+                    </div>
+                </form>
+            </div>
+        </section>
     );
 }

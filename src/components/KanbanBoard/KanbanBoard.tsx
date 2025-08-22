@@ -1,10 +1,9 @@
 // src/components/KanbanBoard/KanbanBoard.tsx
 "use client";
 
-import { useState } from "react";
-import { Kanban, Column, CardElement } from "../../types";
-import { Card } from "../Card/Card";
-import CardModal from "../CardModal/CardModal";
+import { useState, useRef } from "react";
+import { Kanban, Column, CardElement, Label, Assignee, ChecklistItem, Comment, Attachment } from "../../types";
+import CardModal, { CardUpdatePayload } from "../CardModal/CardModal";
 import KanbanHeaderEdit from "../KanbanHeaderEdit";
 import InviteModal from "../InviteModal/InviteModal";
 
@@ -12,359 +11,373 @@ type Props = {
     kanban: Kanban;
     updateKanbanColumns: (columns: Column[]) => void;
     updateKanbanInfo: (updated: { name?: string; description?: string }) => void;
+    onDeleteKanban: (id: string) => void;
 };
 
-export default function KanbanBoard({
-    kanban,
-    updateKanbanColumns,
-    updateKanbanInfo,
-}: Props) {
+export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanInfo, onDeleteKanban }: Props) {
     const [editingId, setEditingId] = useState<number | string | null>(null);
     const [newColumnName, setNewColumnName] = useState("");
     const [newCardTitle, setNewCardTitle] = useState<Record<number | string, string>>({});
     const [selectedCard, setSelectedCard] = useState<CardElement | null>(null);
 
-    // Ajouter une nouvelle colonne
+    const dragging = useRef<{ card: CardElement | null; fromColId: number | string | null }>({ card: null, fromColId: null });
+    const lastPositions = useRef<Map<string, DOMRect>>(new Map());
+
+    // ===================== UTILITAIRES DND =====================
+    const capturePositions = () => {
+        lastPositions.current.clear();
+        document.querySelectorAll<HTMLElement>(".card").forEach(el => {
+            if (el.dataset.cardId) lastPositions.current.set(el.dataset.cardId, el.getBoundingClientRect());
+        });
+    };
+
+    const playReorderAnimations = () => {
+        document.querySelectorAll<HTMLElement>(".card").forEach(el => {
+            const id = el.dataset.cardId!;
+            const prev = lastPositions.current.get(id);
+            if (!prev) return;
+
+            const now = el.getBoundingClientRect();
+            const dx = prev.left - now.left;
+            const dy = prev.top - now.top;
+
+            if (dx || dy) {
+                el.style.transform = `translate(${dx}px, ${dy}px)`;
+
+                requestAnimationFrame(() => {
+                    el.style.transition = "transform 200ms ease";
+                    el.style.transform = "";
+                });
+            }
+        });
+    };
+
+    const ensurePlaceholder = (container: HTMLElement) => {
+        let ph = container.querySelector(".placeholder") as HTMLElement;
+        if (!ph) {
+            ph = document.createElement("div");
+            ph.className = "placeholder";
+            ph.style.border = "2px dashed var(--border)";
+            ph.style.borderRadius = "8px";
+            ph.style.margin = "2px 0";
+            ph.style.transition = "all 0.2s ease";
+            ph.style.pointerEvents = "none";
+        }
+
+        const draggingCard = container.querySelector(".card.dragging") as HTMLElement;
+        if (draggingCard) {
+            // transition douce pour la hauteur
+            ph.style.height = draggingCard.offsetHeight + "px";
+        }
+
+        return ph;
+    };
+
+    const getDragAfterElement = (container: HTMLElement, y: number) => {
+        const els = [...container.querySelectorAll<HTMLElement>(".card:not(.dragging)")];
+        return els.reduce<{ offset: number; element: HTMLElement | null }>((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) return { offset, element: child };
+            return closest;
+        }, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+    };
+
+    // ===================== ACTIONS KANBAN =====================
+    const handleDeleteKanban = async (id: string) => {
+        const confirmDelete = window.confirm("Supprimer ce kanban ? Cette action est irréversible.");
+        if (!confirmDelete) return;
+
+        try {
+            const res = await fetch(`/api/kanbans/${id}`, { method: "DELETE" });
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || "Erreur lors de la suppression");
+            }
+            onDeleteKanban(id);
+        } catch (e) {
+            alert(e instanceof Error ? e.message : "Erreur inconnue");
+        }
+    };
+
+    // ===================== ACTIONS COLONNES =====================
     const addColumn = async () => {
         const name = prompt("Nom de la nouvelle colonne ?");
-        if (name?.trim()) {
-            const order = kanban.columns.length; // position = dernière
-            const res = await fetch("/api/columns", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    title: name,
-                    kanbanId: kanban.id,
-                    order,
-                }),
-            });
-
-            if (!res.ok) {
-                const error = await res.json();
-                alert("Erreur: " + error.error);
-                return;
-            }
-
-            const newCol: Column = await res.json();
-            updateKanbanColumns([...kanban.columns, newCol]);
+        if (!name?.trim()) return;
+        const order = kanban.columns.length;
+        const res = await fetch("/api/columns", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: name, kanbanId: kanban.id, order }),
+        });
+        if (!res.ok) {
+            const error = await res.json();
+            alert("Erreur: " + error.error);
+            return;
         }
+        const newCol: Column = await res.json();
+        updateKanbanColumns([...kanban.columns, newCol]);
     };
 
-    // Supprimer une colonne
     const deleteColumn = async (id: number | string) => {
-        if (confirm("Supprimer cette colonne ?")) {
-            await fetch(`/api/columns/${id}`, { method: "DELETE" });
-            updateKanbanColumns(kanban.columns.filter((c) => c.id !== id));
-        }
+        if (!confirm("Supprimer cette colonne ?")) return;
+        await fetch(`/api/columns/${id}`, { method: "DELETE" });
+        updateKanbanColumns(kanban.columns.filter(c => c.id !== id));
     };
 
-    // Sauvegarder édition du nom d’une colonne
     const saveEdit = async (id: number | string) => {
         const trimmedName = newColumnName.trim();
         if (!trimmedName) return alert("Le nom de la colonne ne peut pas être vide.");
-
         await fetch(`/api/columns/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ title: trimmedName }),
         });
-
-        updateKanbanColumns(
-            kanban.columns.map((c) =>
-                c.id === id ? { ...c, title: trimmedName } : c
-            )
-        );
+        updateKanbanColumns(kanban.columns.map(c => c.id === id ? { ...c, title: trimmedName } : c));
         setEditingId(null);
     };
 
-    // Ajouter une carte dans une colonne
-    const addCard = async (columnId: number | string) => {
-        const title = newCardTitle[columnId]?.trim();
-        if (!title) return alert("Le titre de la carte est vide !");
+    // ===================== ACTIONS CARTES =====================
+    const addCard = async (colId: number | string) => {
+        const title = newCardTitle[colId]?.trim() || "Nouvelle carte";
+        const newCard: CardElement = {
+            id: "c" + Math.random().toString(36).slice(2, 6),
+            title,
+            labels: [],
+            assignees: [],
+            dueDate: null,
+            description: "",
+            checklist: [],
+            comments: [],
+            attachments: [],
+            order: kanban.columns.find(c => c.id === colId)?.cards.length || 0,
+            columnId: colId.toString(),
+        };
 
-        const res = await fetch("/api/cards", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title, columnId }),
-        });
-
-        if (!res.ok) {
-            const error = await res.json();
-            alert("Erreur : " + error.error);
-            return;
-        }
-
-        const newCard: CardElement = await res.json();
-
-        // Met à jour localement la colonne et les cartes
-        const updatedColumns = kanban.columns.map((col) => {
-            if (col.id === columnId) {
-                const updatedCards = [...(col.cards ?? []), newCard];
-                const cardsWithNewOrder = updatedCards.map((card, i) => ({
-                    ...card,
-                    order: i,
-                }));
-                return { ...col, cards: cardsWithNewOrder };
-            }
-            return col;
-        });
-
+        const updatedColumns = kanban.columns.map(c => c.id === colId ? { ...c, cards: [...(c.cards ?? []), newCard] } : c);
         updateKanbanColumns(updatedColumns);
-
-        // Sauvegarder nouvel ordre des cartes
-        await updateCardOrder(columnId, updatedColumns.find(c => c.id === columnId)?.cards ?? []);
-
-        // Vider input nouvelle carte
-        setNewCardTitle(prev => ({ ...prev, [columnId]: "" }));
+        setNewCardTitle(prev => ({ ...prev, [colId]: "" }));
     };
 
-    // Cliquer sur une carte pour ouvrir le modal
-    const handleCardClick = (card: CardElement) => {
-        setSelectedCard(card);
-    };
+    const handleCardClick = (card: CardElement) => setSelectedCard(card);
 
-    // Sauvegarder les modifications d’une carte (déplacement ou édition)
-    const handleCardSave = async (
-        cardId: number | string,
-        updatedData: Partial<CardElement> & { columnId?: number | string }
-    ) => {
-        let movedCard: CardElement | null = null;
-        let oldColId: number | string | null = null;
-        const newColId: number | string | null = updatedData.columnId ?? null;
+    const handleCardSave = async (cardId: string, payload: CardUpdatePayload) => {
+        // On mappe les labels vers Label[] complet
+        const labels: Label[] = payload.labels?.map(l => ({
+            id: l.id,
+            name: "",
+            color: ""
+        })) ?? [];
 
-        // Retirer la carte de sa colonne d’origine
-        const intermediateColumns = kanban.columns.map((col) => {
-            if (col.cards?.some((c) => c.id === cardId)) {
-                oldColId = col.id;
-                const filteredCards = col.cards.filter((c) => {
-                    if (c.id === cardId) {
-                        movedCard = { ...c, ...updatedData };
-                        return false;
+        const assignees: Assignee[] = payload.assignees?.map(a => ({
+            id: a.id,
+            name: "",
+            email: "",
+            role: "member"
+        })) ?? [];
+
+        // Mise à jour locale
+        const updatedColumns = kanban.columns.map(col => ({
+            ...col,
+            cards: col.cards.map(c =>
+                c.id === cardId
+                    ? {
+                        ...c,
+                        title: payload.title ?? c.title,
+                        description: payload.description ?? c.description,
+                        order: payload.order ?? c.order,
+                        columnId: payload.columnId?.toString() ?? c.columnId,
+                        labels,
+                        assignees,
+                        dueDate: payload.dueDate ?? c.dueDate,
+                        checklist: c.checklist,
+                        comments: c.comments,
+                        attachments: c.attachments,
+                        id: c.id
                     }
-                    return true;
-                });
-                return { ...col, cards: filteredCards };
-            }
-            return col;
-        });
-
-        if (!movedCard) return;
-        const targetColId = newColId ?? oldColId;
-
-        // Sauvegarder modification carte côté serveur
-        await fetch(`/api/cards/${cardId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...updatedData }),
-        });
-
-        // Ajouter la carte modifiée dans la nouvelle colonne
-        const updatedColumns = intermediateColumns.map((col) =>
-            col.id === targetColId
-                ? { ...col, cards: [...(col.cards ?? []), movedCard!] }
-                : col
-        );
+                    : c
+            )
+        }));
 
         updateKanbanColumns(updatedColumns);
         setSelectedCard(null);
+
+        // Envoi au serveur
+        await fetch(`/api/cards/${cardId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
     };
 
-    // Supprimer une carte
-    const handleCardDelete = async (cardId: number | string) => {
+    const handleCardDelete = async (cardId: string) => {
         await fetch(`/api/cards/${cardId}`, { method: "DELETE" });
-
-        const updatedColumns = kanban.columns.map((col) => ({
+        const updatedColumns = kanban.columns.map(col => ({
             ...col,
-            cards: col.cards.filter((c) => c.id !== cardId),
+            cards: col.cards.filter(c => c.id !== cardId)
         }));
         updateKanbanColumns(updatedColumns);
         setSelectedCard(null);
     };
 
-    // Met à jour l’ordre des cartes dans une colonne via API
-    async function updateCardOrder(columnId: string | number, cards: CardElement[]) {
+    const updateCardOrder = async (columnId: string | number, cards: CardElement[]) => {
         await fetch("/api/cards/reorder", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ columnId, cards }),
+            body: JSON.stringify({ columnId: columnId.toString(), cards }),
         });
-    }
-
-    // Déplacer une carte vers le haut dans la colonne
-    const moveCardUp = async (columnId: number | string, cardId: number | string) => {
-        const newCols = kanban.columns.map((col) => {
-            if (col.id !== columnId) return col;
-
-            const idx = col.cards.findIndex((c) => c.id === cardId);
-            if (idx > 0) {
-                const updatedCards = [...col.cards];
-                [updatedCards[idx - 1], updatedCards[idx]] = [updatedCards[idx], updatedCards[idx - 1]];
-
-                return { ...col, cards: updatedCards.map((c, i) => ({ ...c, order: i })) };
-            }
-            return col;
-        });
-
-        const movedColumn = newCols.find((col) => col.id === columnId);
-        if (movedColumn) {
-            await updateCardOrder(columnId, movedColumn.cards);
-        }
-
-        updateKanbanColumns(newCols);
     };
 
-    // Déplacer une carte vers le bas dans la colonne
-    const moveCardDown = async (columnId: number | string, cardId: number | string) => {
-        const newCols = kanban.columns.map((col) => {
-            if (col.id !== columnId) return col;
+    // ===================== DND =====================
+    const onDragStart = (e: React.DragEvent<HTMLDivElement>, card: CardElement, colId: number | string) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", card.id);
+        dragging.current.card = card;
+        dragging.current.fromColId = colId;
 
-            const idx = col.cards.findIndex((c) => c.id === cardId);
-            if (idx > -1 && idx < col.cards.length - 1) {
-                const updatedCards = [...col.cards];
-                [updatedCards[idx], updatedCards[idx + 1]] = [updatedCards[idx + 1], updatedCards[idx]];
+        const target = e.currentTarget as HTMLElement;
+        setTimeout(() => target.classList.add("dragging"), 0);
 
-                return { ...col, cards: updatedCards.map((c, i) => ({ ...c, order: i })) };
-            }
-            return col;
-        });
-
-        const movedColumn = newCols.find((col) => col.id === columnId);
-        if (movedColumn) {
-            await updateCardOrder(columnId, movedColumn.cards);
-        }
-
-        updateKanbanColumns(newCols);
+        capturePositions();
     };
 
+    const onDragEnd = (e: React.DragEvent) => {
+        (e.currentTarget as HTMLElement).classList.remove("dragging");
+        dragging.current.card = null;
+        dragging.current.fromColId = null;
+        playReorderAnimations();
+
+        // Nettoyage placeholder au cas où
+        document.querySelectorAll<HTMLElement>(".placeholder").forEach(ph => ph.remove());
+    };
+
+    const onDragOver = (e: React.DragEvent, colId: number | string) => {
+        e.preventDefault();
+        const container = e.currentTarget.querySelector<HTMLElement>(".cards")!;
+        let placeholder = container.querySelector<HTMLElement>(".placeholder");
+
+        // Supprime les placeholders des autres colonnes
+        document.querySelectorAll<HTMLElement>(".placeholder").forEach(ph => {
+            if (!container.contains(ph)) ph.remove();
+        });
+
+        if (!placeholder) {
+            placeholder = document.createElement("div");
+            placeholder.className = "placeholder";
+            placeholder.style.border = "2px dashed var(--border)";
+            placeholder.style.borderRadius = "8px";
+            placeholder.style.margin = "2px 0";
+            placeholder.style.transition = "all 0.2s ease";
+            placeholder.style.pointerEvents = "none";
+            container.appendChild(placeholder);
+        }
+
+        // Ajuste la hauteur à la carte en train d'être déplacée
+        const draggingCard = document.querySelector<HTMLElement>(".card.dragging");
+        if (draggingCard) {
+            placeholder.style.height = draggingCard.offsetHeight + "px";
+        }
+
+        const afterEl = getDragAfterElement(container, e.clientY);
+
+        if (afterEl == null) container.appendChild(placeholder);
+        else container.insertBefore(placeholder, afterEl);
+    };
+
+    const onDrop = async (e: React.DragEvent, colId: number | string) => {
+        e.preventDefault();
+        const container = e.currentTarget.querySelector<HTMLElement>(".cards")!;
+        const placeholder = container.querySelector<HTMLElement>(".placeholder");
+        if (!dragging.current.card || !placeholder) return;
+
+        const fromCol = kanban.columns.find(c => c.id === dragging.current.fromColId);
+        if (!fromCol) return;
+        const idx = fromCol.cards.findIndex(c => c.id === dragging.current.card!.id);
+        if (idx > -1) fromCol.cards.splice(idx, 1);
+
+        const toCol = kanban.columns.find(c => c.id === colId);
+        if (!toCol) return;
+        const children = [...container.children];
+        const newIndex = children.indexOf(placeholder);
+        toCol.cards.splice(newIndex, 0, dragging.current.card);
+
+        updateKanbanColumns([...kanban.columns]);
+
+        // Supprime tous les placeholders après le drop
+        document.querySelectorAll<HTMLElement>(".placeholder").forEach(ph => ph.remove());
+
+        await updateCardOrder(colId, toCol.cards);
+
+        // Réinitialise drag
+        dragging.current.card = null;
+        dragging.current.fromColId = null;
+    };
+
+    // ===================== RENDER =====================
     return (
         <section>
-            <KanbanHeaderEdit kanban={kanban} updateKanbanInfo={updateKanbanInfo} />
-
+            <KanbanHeaderEdit
+                kanban={kanban}
+                updateKanbanInfo={updateKanbanInfo}
+                onDelete={handleDeleteKanban} // <-- suppression via le kebab
+            />
             <div style={{ marginBottom: 16 }}>
                 <InviteModal kanbanId={kanban.id} />
             </div>
 
-            <div
-                className="cols-section"
-                style={{
-                    display: "flex",
-                    gap: 16,
-                    overflowX: "auto",
-                    paddingBottom: 8,
-                }}
-            >
-                {(kanban.columns ?? []).map((col) => (
-                    <div
-                        key={col.id}
-                        className="kanban-column"
-                        style={{
-                            flex: "0 0 300px",
-                            border: "1px solid #ddd",
-                            borderRadius: 6,
-                            padding: 8,
-                            backgroundColor: "#f9f9f9",
-                            display: "flex",
-                            flexDirection: "column",
-                            maxHeight: "80vh",
-                        }}
-                    >
+            <div className="board">
+                {kanban.columns.map(col => (
+                    <div key={col.id} className="board-list" onDragOver={e => onDragOver(e, col.id)} onDrop={e => onDrop(e, col.id)}>
                         {editingId === col.id ? (
                             <>
-                                <input
-                                    value={newColumnName}
-                                    onChange={(e) => setNewColumnName(e.target.value)}
-                                />
+                                <input value={newColumnName} onChange={e => setNewColumnName(e.target.value)} />
                                 <button onClick={() => saveEdit(col.id)}>💾</button>
                                 <button onClick={() => setEditingId(null)}>✖️</button>
                             </>
                         ) : (
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <h3>{col.title}</h3>
-                                <div>
-                                    <button
-                                        onClick={() => {
-                                            setEditingId(col.id);
-                                            setNewColumnName(col.title);
-                                        }}
-                                        title="Modifier la colonne"
-                                    >
-                                        ✏️
-                                    </button>
-                                    <button onClick={() => deleteColumn(col.id)} title="Supprimer la colonne">🗑️</button>
+                            <div className="list-header">
+                                <h3 className="list-title">{col.title}</h3>
+                                <div className="list-actions">
+                                    <button onClick={() => { setEditingId(col.id); setNewColumnName(col.title); }} title="Modifier">✏️</button>
+                                    <button onClick={() => deleteColumn(col.id)} title="Supprimer">🗑️</button>
                                 </div>
                             </div>
                         )}
 
-                        <ul style={{ listStyle: "none", padding: 0, minHeight: 100, overflowY: "auto" }}>
-                            {(col.cards ?? [])
-                                .slice() // copie pour ne pas muter l'état
-                                .sort((a, b) => a.order - b.order)
-                                .map((card, idx) => (
-                                    <li key={card.id} style={{ marginBottom: 8 }}>
-                                        <Card
-                                            card={card}
-                                            onClick={() => handleCardClick(card)}
-                                            onMoveUp={() => moveCardUp(col.id, card.id)}
-                                            onMoveDown={() => moveCardDown(col.id, card.id)}
-                                            isFirst={idx === 0}
-                                            isLast={idx === col.cards.length - 1}
-                                        />
-                                    </li>
-                                ))}
-                        </ul>
+                        <div className="cards">
+                            {col.cards.map(card => (
+                                <div
+                                    key={card.id}
+                                    className="card"
+                                    draggable
+                                    onDragStart={e => onDragStart(e, card, col.id)}
+                                    onDragEnd={onDragEnd}
+                                    onClick={() => handleCardClick(card)}
+                                    data-card-id={card.id}
+                                >
+                                    <div className="labels">{(card.labels || []).map(l => <span key={l.id} className={`label ${l.id}`} />)}</div>
+                                    <div className="title">{card.title}</div>
+                                    <div className="card-meta">
+                                        {card.dueDate && <span className="chip">⏰ {new Date(card.dueDate).toLocaleDateString()}</span>}
+                                        {card.assignees?.length ? <span className="chip">👤 {card.assignees.length}</span> : null}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
 
                         <div style={{ marginTop: 8, display: "flex", gap: 4 }}>
                             <input
                                 placeholder="Titre nouvelle carte"
                                 value={newCardTitle[col.id] || ""}
-                                onChange={(e) =>
-                                    setNewCardTitle((prev) => ({
-                                        ...prev,
-                                        [col.id]: e.target.value,
-                                    }))
-                                }
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        addCard(col.id);
-                                    }
-                                }}
-                                style={{
-                                    flexGrow: 1,
-                                    padding: 6,
-                                    borderRadius: 4,
-                                    border: "1px solid #ccc",
-                                }}
+                                onChange={e => setNewCardTitle(prev => ({ ...prev, [col.id]: e.target.value }))}
+                                onKeyDown={e => { if (e.key === "Enter") addCard(col.id); }}
                             />
-                            <button
-                                onClick={() => addCard(col.id)}
-                                style={{ cursor: "pointer", padding: "6px 12px" }}
-                                title="Ajouter une carte"
-                            >
-                                ➕
-                            </button>
+                            <button onClick={() => addCard(col.id)}>➕</button>
                         </div>
                     </div>
                 ))}
-                <button
-                    onClick={addColumn}
-                    style={{
-                        height: 40,
-                        alignSelf: "start",
-                        marginLeft: 12,
-                        padding: "0 16px",
-                        cursor: "pointer",
-                        borderRadius: 6,
-                        border: "1px dashed #aaa",
-                        backgroundColor: "transparent",
-                        color: "white",
-                        fontWeight: "600",
-                        flex: "0 0 auto",
-                    }}
-                    title="Ajouter une colonne"
-                >
-                    + Ajouter une colonne
-                </button>
+
+                <button onClick={addColumn} className="create-button">+ Ajouter une colonne</button>
             </div>
 
             {selectedCard && (
@@ -372,20 +385,9 @@ export default function KanbanBoard({
                     card={selectedCard}
                     kanbanColumns={kanban.columns}
                     allLabels={[]}
-                    allUsers={[]}
                     onClose={() => setSelectedCard(null)}
                     onSave={handleCardSave}
                     onDelete={handleCardDelete}
-                // onUpdate={(updatedCard) => {
-                //     const updatedColumns = kanban.columns.map((col) => ({
-                //         ...col,
-                //         cards: col.cards.map((c) =>
-                //             c.id === updatedCard.id ? updatedCard : c
-                //         ),
-                //     }));
-                //     updateKanbanColumns(updatedColumns);
-                //     setSelectedCard(updatedCard); // met aussi à jour la modale ouverte
-                // }}
                 />
             )}
         </section>

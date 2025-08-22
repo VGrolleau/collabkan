@@ -1,5 +1,6 @@
 import { FC, useCallback } from "react";
 import { ChecklistItem } from "@/types";
+import styles from "./ChecklistSection.module.scss";
 
 type ChecklistSectionProps = {
     checklist: ChecklistItem[];
@@ -79,12 +80,20 @@ const ChecklistSection: FC<ChecklistSectionProps> = ({ checklist, cardId, onChan
     };
 
     return (
-        <div>
-            <h4>Checklist ({completion}%)</h4>
-            <progress value={completion} max={100} style={{ width: "100%" }} />
+        <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+                <div className={styles.sectionTitle}>Checklist</div>
+                <div className={styles.completion}>{completion}%</div>
+            </div>
 
+            {/* Progress bar */}
+            <div className={styles.progress}>
+                <div style={{ width: `${completion}%` }} />
+            </div>
+
+            {/* Items */}
             {checklist.map((item, idx) => (
-                <div key={item.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                <div key={item.id} className={styles.checklistItem}>
                     <input
                         type="checkbox"
                         checked={item.done}
@@ -96,16 +105,21 @@ const ChecklistSection: FC<ChecklistSectionProps> = ({ checklist, cardId, onChan
                         onChange={(e) => updateText(idx, e.target.value)}
                         placeholder="Nouvel item"
                         rows={1}
-                        style={{
-                            flex: 1,
-                            resize: "none",
-                            overflow: "hidden",
-                        }}
+                        className={styles.textarea}
                     />
-                    <button onClick={() => removeItem(idx)}>✖️</button>
+                    <button className={styles.btn} onClick={() => removeItem(idx)}>🗑️</button>
                 </div>
             ))}
-            <button onClick={addItem}>+ Ajouter un item</button>
+
+            {/* Ajouter un item */}
+            <div className={styles.addRow}>
+                <input
+                    className={styles.input}
+                    placeholder="Nouvelle tâche…"
+                    onKeyDown={(e) => e.key === "Enter" && addItem()}
+                />
+                <button className={styles.btn} onClick={addItem}>Ajouter</button>
+            </div>
         </div>
     );
 };

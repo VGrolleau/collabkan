@@ -1,18 +1,31 @@
 /* src/components/Card/Card.module.scss */
-.card {
-    padding: 0.75rem;
-    background-color: #383838;
-    border: 1px solid #555;
-    border-radius: 6px;
-    text-align: left;
-    transition: box-shadow 0.2s;
-    color: #eee;
 
-    &:hover {
-        box-shadow: 0 0 0 2px #90caf9;
-    }
+.card {
+    padding: 10px 12px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: grab;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.08s ease, box-shadow 0.2s ease;
+    color: var(--text-primary);
+    width: 100%;
+    min-height: 60px;
 }
 
+.card:active {
+    cursor: grabbing;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(76,139,245,0.25);
+}
+
+/* Due date tag */
 .dueDateTag {
     display: inline-flex;
     align-items: center;
@@ -22,16 +35,7 @@
     font-size: 0.75rem;
     color: #fff;
 
-    &.red {
-        background-color: #e53935;
-    }
-
-    &.orange {
-        background-color: #fb8c00;
-    }
-
-    &.grey {
-        background-color: #ccc;
-        color: #000;
-    }
+    &.red { background-color: #e53935; }
+    &.orange { background-color: #fb8c00; }
+    &.grey { background-color: var(--muted); color: var(--text-secondary); }
 }

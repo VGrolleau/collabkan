@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type QuillType from "quill";
 import "quill/dist/quill.snow.css";
+import styles from "./DescriptionSection.module.scss";
 
 type DescriptionSectionProps = {
     value: string;
@@ -50,28 +51,10 @@ export default function DescriptionSection({ value, onChange }: DescriptionSecti
     }, [value]);
 
     return (
-        <div
-            style={{
-                marginBottom: 16,
-                position: "relative"
-            }}
-        >
-            <h4>Description</h4>
+        <div className={styles.section}>
+            <h4 className={styles.sectionTitle}>Description</h4>
 
-            <div
-                ref={toolbarRef}
-                style={{
-                    border: "1px solid #ccc",
-                    borderRadius: 4,
-                    marginBottom: 4,
-                    padding: 4,
-                    background: "#f0f0f0",
-                    display: "flex",
-                    gap: 8,
-                    overflowX: "auto",
-                    position: "relative"
-                }}
-            >
+            <div ref={toolbarRef} className={styles.toolbar}>
                 {/* Styles de texte */}
                 <span className="ql-formats">
                     <button className="ql-bold"></button>
@@ -115,17 +98,7 @@ export default function DescriptionSection({ value, onChange }: DescriptionSecti
             </div>
 
             {/* Éditeur */}
-            <div
-                ref={editorRef}
-                style={{
-                    height: 150,
-                    padding: 8,
-                    borderRadius: 4,
-                    border: "1px solid #ccc",
-                    overflowY: "auto",
-                    backgroundColor: "#fff",
-                }}
-            />
+            <div ref={editorRef} className={styles.textarea} />
         </div>
     );
 }

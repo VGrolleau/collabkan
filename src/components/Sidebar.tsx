@@ -1,107 +1,81 @@
-// src/components/Sidebar.tsx
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AddKanbanModal from "./AddKanbanModal";
 import { Kanban } from "../types";
-import LogoutButton from "./LogoutButton";
+import clsx from "clsx";
 import { useRouter } from "next/navigation";
-import { User } from "@prisma/client";
+import { useUser } from "@/context/UserContext";
 
 type Props = {
     kanbans: Kanban[];
     onSelect: (kanban: Kanban) => void;
-    onAddKanban: (data: { title: string; description: string }) => void;
-    onDeleteKanban: (id: string) => void;
-    user: User;
+    onAddKanban: (data: { title: string; description: string }) => Promise<Kanban | null>;
+    onDeleteKanban: (id: string) => Promise<void> | void;
 };
 
-export default function Sidebar({
-    kanbans,
-    onSelect,
-    onAddKanban,
-    onDeleteKanban,
-    user
-}: Props) {
+export default function Sidebar({ kanbans, onSelect, onAddKanban, onDeleteKanban }: Props) {
+    const { user } = useUser();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedKanbanId, setSelectedKanbanId] = useState<string | null>(null);
     const router = useRouter();
 
-    const handleDelete = (kanban: Kanban) => {
-        const confirmation = prompt(
-            `Pour supprimer « ${kanban.name} », tapez son nom :`
-        );
-        if (confirmation === kanban.name) {
-            onDeleteKanban(kanban.id);
-        } else {
-            alert("Nom incorrect. Suppression annulée.");
+    useEffect(() => {
+        if (kanbans.length > 0 && !selectedKanbanId) {
+            setSelectedKanbanId(kanbans[0].id);
+            onSelect(kanbans[0]);
         }
+    }, [kanbans, selectedKanbanId, onSelect]);
+
+    useEffect(() => {
+        if (!selectedKanbanId) return;
+        const stillExists = kanbans.some(k => k.id === selectedKanbanId);
+        if (!stillExists && kanbans.length > 0) {
+            setSelectedKanbanId(kanbans[0].id);
+            onSelect(kanbans[0]);
+        }
+    }, [kanbans, selectedKanbanId, onSelect]);
+
+    const getInitials = (name?: string | null) => {
+        if (!name) return "??";
+        const parts = name.trim().split(/\s+/);
+        return parts.length === 1 ? parts[0][0].toUpperCase() : (parts[0][0] + parts[1][0]).toUpperCase();
     };
 
-    function getInitials(name: string | null | undefined): string {
-        if (!name) return "??";
-        const parts = name.trim().split(" ");
-        if (parts.length === 1) return parts[0][0].toUpperCase();
-        return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
+    if (!user) return null;
 
     return (
-        <aside>
-            <h1
-                style={{ cursor: "pointer" }}
-                onClick={() => router.push("/")}
-            >
-                {`Collab'Kan`}
-            </h1>
+        <aside className="sidebar">
+            <div className="user-block" style={{ cursor: "pointer" }} onClick={() => router.push("/profile")}>
+                <div className="avatar">{user.avatarUrl ? <img src={user.avatarUrl} alt={user.name || "User"} /> : getInitials(user.name)}</div>
+                <div className="user-info">
+                    <div className="user-name">{user.name || "Utilisateur"}</div>
+                    <div className="user-email">{user.email}</div>
+                </div>
+            </div>
 
-            <section>
-                <h2>{`Mes collab' :`}</h2>
-                <ul>
-                    {kanbans.map((k) => (
-                        <li key={k.id}>
-                            <button onClick={() => {
-                                onSelect(k);
-                                router.push("/");
-                            }}>{k.name}</button>
-                            <button onClick={() => handleDelete(k)}>🗑️</button>
-                        </li>
-                    ))}
-                </ul>
-                <button onClick={() => setIsModalOpen(true)}>Ajouter un tableau</button>
-            </section>
+            <div className="group-title">{`MES COLLAB'`}</div>
+            <ul className="sidebar-list">
+                {kanbans.map(k => (
+                    <li key={k.id} className={clsx("sidebar-item", selectedKanbanId === k.id && "active")} onClick={() => { onSelect(k); setSelectedKanbanId(k.id); }}>
+                        <div className="sidebar-item-row">
+                            <span>{k.name}</span>
+                            <button className="delete-btn" onClick={async e => { e.stopPropagation(); await onDeleteKanban(k.id); if (selectedKanbanId === k.id) setSelectedKanbanId(null); }} title="Supprimer">🗑️</button>
+                        </div>
+                    </li>
+                ))}
+            </ul>
 
-            <section>
-                <button
-                    onClick={() => router.push("/profile")}
-                    aria-label="Profile"
-                    style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: "50%",
-                        overflow: "hidden",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        backgroundColor: "#ddd",
-                        fontWeight: "bold",
-                        fontSize: "1.1rem",
-                        cursor: "pointer",
-                    }}
-                >
-                    {user.avatarUrl ? (
-                        <img src={user.avatarUrl} alt="Photo de profil" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    ) : (
-                        getInitials(user.name)
-                    )}
-                </button>
-                <LogoutButton />
-            </section>
+            <div className="group-title">ACTIONS</div>
+            <div className="create-button" onClick={() => setIsModalOpen(true)}>+ Créer un tableau</div>
 
             {isModalOpen && (
                 <AddKanbanModal
                     onClose={() => setIsModalOpen(false)}
-                    onAdd={(data) => {
-                        onAddKanban(data);
+                    onAdd={async data => {
+                        const newKanban = await onAddKanban(data);
                         setIsModalOpen(false);
+                        if (newKanban) { setSelectedKanbanId(newKanban.id); onSelect(newKanban); }
                     }}
                 />
             )}

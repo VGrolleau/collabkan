@@ -1,0 +1,100 @@
+.cardLabels {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  h4 {
+    font-weight: 800;
+    margin: 0 0 10px;
+    opacity: .9;
+  }
+}
+
+.labelsEdit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.labelChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0b0b0b;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.25s ease, opacity 0.25s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.selected {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.fadeOut {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.fadeIn {
+  opacity: 0;
+  transform: scale(0.8);
+  animation: appear 0.3s forwards;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.deleteIcon {
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0.7;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.addLabelForm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  input[type="text"], input[type="color"] {
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    padding: 4px 6px;
+    font-size: 13px;
+  }
+
+  input[type="color"] {
+    width: 30%;
+  }
+
+  button {
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+}

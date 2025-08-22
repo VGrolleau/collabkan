@@ -7,6 +7,7 @@ import KanbanBoard from "./KanbanBoard/KanbanBoard";
 import { Kanban, Column } from "../types";
 import { User } from "@prisma/client";
 import { fetchKanbanById } from "@/utils/fetchKanbanById";
+import Topbar from "./Topbar";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname(); // 👈 récupère l’URL courante
@@ -89,8 +90,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             const createdKanban: Kanban = await res.json();
             setKanbans((prev) => [...prev, createdKanban]);
             setSelected(createdKanban);
+
+            return createdKanban; // ✅ renvoyer le kanban ajouté
         } catch (e) {
             alert(e instanceof Error ? e.message : "Erreur inconnue");
+            return null;
         }
     };
 
@@ -172,7 +176,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const isProfilePage = pathname === "/profile"; // 👈 vérifie si on est sur /profile
 
     return (
-        <>
+        <div className="layout">
             <Sidebar
                 kanbans={kanbans}
                 onSelect={handleSelectKanban}
@@ -180,20 +184,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 onDeleteKanban={handleDeleteKanban}
                 user={user}
             />
-            <main>
-                {isProfilePage ? (
-                    children // 👈 affiche ton composant de profil ici
-                ) : selected ? (
-                    <KanbanBoard
-                        key={selected?.id}
-                        kanban={selected}
-                        updateKanbanColumns={updateKanbanColumns}
-                        updateKanbanInfo={updateKanbanInfo}
-                    />
-                ) : (
-                    <p>{`Bienvenue ! Sélectionnez une collab' pour commencer.`}</p>
-                )}
+            <main className="board-wrap">
+                {/* Topbar ici si tu en as un */}
+                <Topbar />
+
+                <section className="board">
+                    {isProfilePage ? (
+                        children // page profil
+                    ) : selected ? (
+                        <KanbanBoard
+                            key={selected?.id}
+                            kanban={selected}
+                            updateKanbanColumns={updateKanbanColumns}
+                            updateKanbanInfo={updateKanbanInfo}
+                            onDeleteKanban={handleDeleteKanban}
+                        />
+                    ) : (
+                        <p>{`Bienvenue ! Sélectionnez une collab' pour commencer.`}</p>
+                    )}
+                </section>
             </main>
-        </>
+        </div>
     );
 }
