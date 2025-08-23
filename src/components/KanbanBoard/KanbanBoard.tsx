@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Kanban, Column, CardElement, Label, Assignee, ChecklistItem, Comment, Attachment } from "../../types";
-import CardModal, { CardUpdatePayload } from "../CardModal/CardModal";
+import { Kanban, Column, CardElement, Label, Assignee, ChecklistItem, CommentClient, Attachment } from "@/types";
+import CardModal, { CardUpdatePayloadFull } from "../CardModal/CardModal";
 import KanbanHeaderEdit from "../KanbanHeaderEdit";
 import InviteModal from "../InviteModal/InviteModal";
 
@@ -140,43 +140,56 @@ export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanI
     // ===================== ACTIONS CARTES =====================
     const addCard = async (colId: number | string) => {
         const title = newCardTitle[colId]?.trim() || "Nouvelle carte";
-        const newCard: CardElement = {
-            id: "c" + Math.random().toString(36).slice(2, 6),
-            title,
-            labels: [],
-            assignees: [],
-            dueDate: null,
-            description: "",
-            checklist: [],
-            comments: [],
-            attachments: [],
-            order: kanban.columns.find(c => c.id === colId)?.cards.length || 0,
-            columnId: colId.toString(),
-        };
 
-        const updatedColumns = kanban.columns.map(c => c.id === colId ? { ...c, cards: [...(c.cards ?? []), newCard] } : c);
-        updateKanbanColumns(updatedColumns);
-        setNewCardTitle(prev => ({ ...prev, [colId]: "" }));
+        try {
+            const res = await fetch("/api/cards", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title,
+                    columnId: colId,
+                    order: kanban.columns.find(c => c.id === colId)?.cards.length || 0,
+                    description: "",
+                }),
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                alert("Erreur: " + error.error);
+                return;
+            }
+
+            const savedCard: CardElement = await res.json();
+
+            // Mise à jour locale avec l'objet renvoyé par l’API (donc persisté)
+            const updatedColumns = kanban.columns.map(c =>
+                c.id === colId
+                    ? { ...c, cards: [...(c.cards ?? []), savedCard] }
+                    : c
+            );
+
+            updateKanbanColumns(updatedColumns);
+            setNewCardTitle(prev => ({ ...prev, [colId]: "" }));
+        } catch (err) {
+            console.error("Erreur lors de l'ajout de carte", err);
+            alert("Impossible d'ajouter la carte.");
+        }
     };
 
-    const handleCardClick = (card: CardElement) => setSelectedCard(card);
+    const handleCardClick = async (card: CardElement) => {
+        try {
+            const res = await fetch(`/api/cards/${card.id}`);
+            if (!res.ok) throw new Error("Impossible de charger la carte");
+            const fullCard: CardElement = await res.json();
+            setSelectedCard(fullCard); // maintenant, CardModal reçoit une carte complète
+        } catch (err) {
+            console.error(err);
+            alert("Erreur lors du chargement de la carte");
+        }
+    };
 
-    const handleCardSave = async (cardId: string, payload: CardUpdatePayload) => {
-        // On mappe les labels vers Label[] complet
-        const labels: Label[] = payload.labels?.map(l => ({
-            id: l.id,
-            name: "",
-            color: ""
-        })) ?? [];
-
-        const assignees: Assignee[] = payload.assignees?.map(a => ({
-            id: a.id,
-            name: "",
-            email: "",
-            role: "member"
-        })) ?? [];
-
-        // Mise à jour locale
+    const handleCardSave = async (cardId: string, payload: CardUpdatePayloadFull) => {
+        // Optimistic update uniquement sur les champs simples (pas comments, labels, assignees)
         const updatedColumns = kanban.columns.map(col => ({
             ...col,
             cards: col.cards.map(c =>
@@ -187,27 +200,47 @@ export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanI
                         description: payload.description ?? c.description,
                         order: payload.order ?? c.order,
                         columnId: payload.columnId?.toString() ?? c.columnId,
-                        labels,
-                        assignees,
-                        dueDate: payload.dueDate ?? c.dueDate,
-                        checklist: c.checklist,
-                        comments: c.comments,
-                        attachments: c.attachments,
-                        id: c.id
+                        dueDate: payload.dueDate ? new Date(payload.dueDate) : c.dueDate,
+                        checklist: payload.checklist ?? c.checklist ?? [],
+                        attachments: payload.attachments ?? c.attachments ?? [],
+                        // labels, assignees et comments non touchés
                     }
                     : c
-            )
+            ),
         }));
 
         updateKanbanColumns(updatedColumns);
         setSelectedCard(null);
 
         // Envoi au serveur
-        await fetch(`/api/cards/${cardId}`, {
+        const res = await fetch(`/api/cards/${cardId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
         });
+
+        if (!res.ok) {
+            console.error("Erreur lors de la mise à jour de la carte");
+            return;
+        }
+
+        // Typage de la réponse API
+        type ApiCard = Omit<CardElement, "dueDate"> & { dueDate: string | null };
+        const updatedCardFromApi: ApiCard = await res.json();
+
+        // Conversion de dueDate en Date
+        const updatedCard: CardElement = {
+            ...updatedCardFromApi,
+            dueDate: updatedCardFromApi.dueDate ? new Date(updatedCardFromApi.dueDate) : null,
+        };
+
+        // Mise à jour finale avec la carte complète
+        const finalColumns = kanban.columns.map(col => ({
+            ...col,
+            cards: col.cards.map(c => (c.id === cardId ? updatedCard : c)),
+        }));
+
+        updateKanbanColumns(finalColumns);
     };
 
     const handleCardDelete = async (cardId: string) => {
@@ -220,11 +253,11 @@ export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanI
         setSelectedCard(null);
     };
 
-    const updateCardOrder = async (columnId: string | number, cards: CardElement[]) => {
+    const updateCardOrder = async (cards: CardElement[]) => {
         await fetch("/api/cards/reorder", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ columnId: columnId.toString(), cards }),
+            body: JSON.stringify({ cards }),
         });
     };
 
@@ -290,25 +323,54 @@ export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanI
         const placeholder = container.querySelector<HTMLElement>(".placeholder");
         if (!dragging.current.card || !placeholder) return;
 
+        const card = dragging.current.card;
         const fromCol = kanban.columns.find(c => c.id === dragging.current.fromColId);
-        if (!fromCol) return;
-        const idx = fromCol.cards.findIndex(c => c.id === dragging.current.card!.id);
-        if (idx > -1) fromCol.cards.splice(idx, 1);
-
         const toCol = kanban.columns.find(c => c.id === colId);
-        if (!toCol) return;
-        const children = [...container.children];
-        const newIndex = children.indexOf(placeholder);
-        toCol.cards.splice(newIndex, 0, dragging.current.card);
+        if (!fromCol || !toCol) return;
 
+        // 🔹 Supprime la carte de la colonne source
+        const idxFrom = fromCol.cards.findIndex(c => c.id === card.id);
+        if (idxFrom > -1) fromCol.cards.splice(idxFrom, 1);
+
+        // 🔹 Détermine l'index exact pour l'insertion dans la colonne cible
+        const cardElements = Array.from(container.querySelectorAll<HTMLElement>(".card"));
+        const newIndex = cardElements.indexOf(placeholder);
+        toCol.cards.splice(newIndex, 0, card);
+
+        // 🔹 Réindexe les cartes de la colonne cible
+        toCol.cards = toCol.cards.map((c, i) => ({
+            ...c,
+            order: i,
+            columnId: colId.toString(),
+        }));
+
+        // 🔹 Réindexe les cartes de la colonne source si la carte a été déplacée
+        if (fromCol.id !== toCol.id) {
+            fromCol.cards = fromCol.cards.map((c, i) => ({
+                ...c,
+                order: i,
+                columnId: fromCol.id.toString(),
+            }));
+        }
+
+        // 🔹 Mise à jour locale
         updateKanbanColumns([...kanban.columns]);
 
-        // Supprime tous les placeholders après le drop
+        // 🔹 Nettoyage du placeholder
         document.querySelectorAll<HTMLElement>(".placeholder").forEach(ph => ph.remove());
 
-        await updateCardOrder(colId, toCol.cards);
+        // 🔹 Prépare les cartes à envoyer au serveur
+        const cardsToUpdate = [...toCol.cards];
+        if (fromCol.id !== toCol.id) cardsToUpdate.push(...fromCol.cards);
 
-        // Réinitialise drag
+        // 🔹 Envoi au serveur
+        await fetch("/api/cards/reorder", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cards: cardsToUpdate }),
+        });
+
+        // 🔹 Reset drag
         dragging.current.card = null;
         dragging.current.fromColId = null;
     };

@@ -1,8 +1,15 @@
-// src/components/CardModal/CardModal.tsx
 "use client";
 
 import { FC, useEffect, useRef, useState } from "react";
-import { CardElement, Column, Label, User, Attachment, ChecklistItem, Comment } from "@/types";
+import {
+    CardElement,
+    Column,
+    Label,
+    User,
+    Attachment,
+    ChecklistItem,
+} from "@/types";
+
 import AttachmentsSection from "./AttachmentsSection/AttachmentsSection";
 import AssigneesSection from "./AssigneesSection/AssigneesSection";
 import CardLabels from "./CardLabels/CardLabels";
@@ -10,7 +17,6 @@ import ChecklistSection from "./ChecklistSection/ChecklistSection";
 import { CommentsSection } from "./CommentsSection";
 import DescriptionSection from "./DescriptionSection/DescriptionSection";
 import DueDateSection from "./DueDateSection/DueDateSection";
-import ColumnSelect from "./ColumnSelect";
 
 import styles from "./CardModal.module.scss";
 
@@ -18,51 +24,36 @@ type CardModalProps = {
     card: CardElement;
     kanbanColumns: Column[];
     allLabels: Label[];
-    // allUsers: User[];
     onClose: () => void;
-    onSave: (cardId: string, updatedData: CardUpdatePayload) => void;
+    onSave: (cardId: string, updatedData: CardUpdatePayloadFull) => Promise<void>;
     onDelete: (cardId: string) => void;
 };
 
-export type CardUpdatePayload = {
+export type CardUpdatePayloadFull = {
     title?: string;
     description?: string;
     order?: number;
     columnId?: string;
     labels?: { id: string }[];
     assignees?: { id: string }[];
-    dueDate?: Date | null;
+    dueDate?: string | null; // <-- string ISO pour l'API
+    checklist?: ChecklistItem[];
+    comments?: { content: string; authorId: string }[];
+    attachments?: Attachment[];
 };
 
-type CardLocalState = CardElement & {
-    checklist: ChecklistItem[];
-    labels: Label[];
-    attachments: Attachment[];
-    assignees: User[];
-    comments: Comment[];
-};
-
-const CardModal: FC<CardModalProps> = ({
-    card,
-    kanbanColumns,
-    // allLabels = [],
-    // allUsers = [],
-    onClose,
-    onSave,
-    onDelete,
-}) => {
-    const [localCard, setLocalCard] = useState<CardLocalState>({
+const CardModal: FC<CardModalProps> = ({ card, onClose, onSave, onDelete }) => {
+    const [localCard, setLocalCard] = useState<CardElement>({
         ...card,
         checklist: card.checklist ?? [],
         labels: card.labels ?? [],
         attachments: card.attachments ?? [],
-        assignees: (card.assignees as User[]) ?? [],
+        assignees: card.assignees ?? [],
         comments: card.comments ?? [],
     });
 
     const contentRef = useRef<HTMLDivElement | null>(null);
 
-    // Fermer avec ESC
     useEffect(() => {
         const onKey = (e: KeyboardEvent) => {
             if (e.key === "Escape") onClose();
@@ -71,7 +62,6 @@ const CardModal: FC<CardModalProps> = ({
         return () => window.removeEventListener("keydown", onKey);
     }, [onClose]);
 
-    // Bloquer scroll page
     useEffect(() => {
         const prev = document.body.style.overflow;
         document.body.style.overflow = "hidden";
@@ -80,22 +70,40 @@ const CardModal: FC<CardModalProps> = ({
         };
     }, []);
 
-    const handleFieldChange = <K extends keyof CardLocalState>(field: K, value: CardLocalState[K]) => {
-        setLocalCard(prev => ({ ...prev, [field]: value }));
-    };
+    const handleFieldChange = <K extends keyof CardElement>(
+        field: K,
+        value: CardElement[K]
+    ) => setLocalCard(prev => ({ ...prev, [field]: value }));
 
     const handleSave = async () => {
-        const payload: CardUpdatePayload = {
+        // Assurer que dueDate est un objet Date
+        let dueDateIso: string | null = null;
+        if (localCard.dueDate) {
+            dueDateIso =
+                localCard.dueDate instanceof Date
+                    ? localCard.dueDate.toISOString()
+                    : new Date(localCard.dueDate).toISOString();
+        }
+
+        const payload: CardUpdatePayloadFull = {
             title: localCard.title,
             description: localCard.description,
             order: localCard.order,
             columnId: localCard.columnId,
             labels: localCard.labels.map(l => ({ id: l.id })),
             assignees: localCard.assignees.map(u => ({ id: u.id })),
-            dueDate: localCard.dueDate ?? null,
+            dueDate: dueDateIso,
+            checklist: localCard.checklist,
+            attachments: localCard.attachments,
+            // commentaires laissés de côté si pas authorId
         };
-        await onSave(localCard.id, payload);
-        onClose();
+
+        try {
+            await onSave(localCard.id, payload);
+            onClose();
+        } catch (error) {
+            console.error("Erreur lors de la mise à jour de la carte :", error);
+        }
     };
 
     const onOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -105,31 +113,20 @@ const CardModal: FC<CardModalProps> = ({
     return (
         <div className={styles.cardModalOverlay} onClick={onOverlayClick}>
             <div ref={contentRef} className={styles.cardModalContent} onClick={e => e.stopPropagation()}>
-                {/* Body scrollable */}
                 <div className={styles.cardModalBody}>
-                    {/* <button className={styles.modalClose} onClick={onClose}>
-                        X
-                    </button> */}
                     <div className={styles.leftPane}>
-                        <div className={styles.modalHeader}>
-                            <input
-                                className={styles.modalTitle}
-                                value={localCard.title}
-                                onChange={e => handleFieldChange("title", e.target.value)}
-                                placeholder="Titre de la carte"
-                            />
-                        </div>
-                        {/* <ColumnSelect
-                        columns={kanbanColumns}
-                        selectedColumnId={localCard.columnId}
-                        onChange={newColumnId => handleFieldChange("columnId", newColumnId)}
-                    /> */}
+                        <input
+                            className={styles.modalTitle}
+                            value={localCard.title}
+                            onChange={e => handleFieldChange("title", e.target.value)}
+                            placeholder="Titre de la carte"
+                        />
                         <DescriptionSection
                             value={localCard.description ?? ""}
                             onChange={desc => handleFieldChange("description", desc)}
                         />
                         <ChecklistSection
-                            checklist={localCard.checklist ?? []}
+                            checklist={localCard.checklist}
                             cardId={localCard.id}
                             onChange={items => handleFieldChange("checklist", items)}
                         />
@@ -144,11 +141,9 @@ const CardModal: FC<CardModalProps> = ({
                             cardId={localCard.id}
                             selectedLabels={localCard.labels}
                             onChange={labels => handleFieldChange("labels", labels)}
-                        // allLabels={allLabels}
                         />
                         <AssigneesSection
                             assignees={localCard.assignees}
-                            // allUsers={allUsers}
                             onChange={newAssignees => handleFieldChange("assignees", newAssignees)}
                         />
                         <DueDateSection
@@ -162,10 +157,8 @@ const CardModal: FC<CardModalProps> = ({
                         />
                     </div>
                 </div>
-
-                {/* Footer */}
                 <div className={styles.cardModalFooter}>
-                    <button className={styles.deleteBtn} onClick={() => onDelete(localCard.id)}>Supprimer la carte</button>
+                    <button className={styles.deleteBtn} onClick={() => onDelete(localCard.id)}>Supprimer</button>
                     <button onClick={onClose}>Annuler</button>
                     <button className="saveBtn" onClick={handleSave}>Enregistrer</button>
                 </div>

@@ -1,4 +1,4 @@
-import { FC, useCallback } from "react";
+import { FC, useCallback, useState } from "react";
 import { ChecklistItem } from "@/types";
 import styles from "./ChecklistSection.module.scss";
 
@@ -9,9 +9,11 @@ type ChecklistSectionProps = {
 };
 
 const ChecklistSection: FC<ChecklistSectionProps> = ({ checklist, cardId, onChange }) => {
+    const [newText, setNewText] = useState("");
+
     // Calcul du pourcentage de complétion
     const completion = checklist.length
-        ? Math.round((checklist.filter((i) => i.done).length / checklist.length) * 100)
+        ? Math.round((checklist.filter(i => i.done).length / checklist.length) * 100)
         : 0;
 
     // Auto-resize des textareas
@@ -25,14 +27,11 @@ const ChecklistSection: FC<ChecklistSectionProps> = ({ checklist, cardId, onChan
     // Toggle d’un item (done)
     const toggleDone = async (index: number) => {
         const item = checklist[index];
-        const updated = { ...item, done: !item.done };
-
-        // Optimistic UI
+        const updated: ChecklistItem = { ...item, done: !item.done };
         const newList = [...checklist];
         newList[index] = updated;
         onChange(newList);
 
-        // Persist côté serveur
         await fetch(`/api/checklist-items/${item.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -43,8 +42,7 @@ const ChecklistSection: FC<ChecklistSectionProps> = ({ checklist, cardId, onChan
     // Modification du texte d’un item
     const updateText = async (index: number, text: string) => {
         const item = checklist[index];
-        const updated = { ...item, text };
-
+        const updated: ChecklistItem = { ...item, text };
         const newList = [...checklist];
         newList[index] = updated;
         onChange(newList);
@@ -58,13 +56,16 @@ const ChecklistSection: FC<ChecklistSectionProps> = ({ checklist, cardId, onChan
 
     // Ajouter un nouvel item
     const addItem = async () => {
+        if (!newText.trim()) return;
+
         const res = await fetch(`/api/checklist-items`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: "", done: false, cardId }),
+            body: JSON.stringify({ text: newText.trim(), done: false, cardId }),
         });
         const created: ChecklistItem = await res.json();
         onChange([...checklist, created]);
+        setNewText("");
     };
 
     // Supprimer un item
@@ -91,18 +92,14 @@ const ChecklistSection: FC<ChecklistSectionProps> = ({ checklist, cardId, onChan
                 <div style={{ width: `${completion}%` }} />
             </div>
 
-            {/* Items */}
+            {/* Items existants */}
             {checklist.map((item, idx) => (
                 <div key={item.id} className={styles.checklistItem}>
-                    <input
-                        type="checkbox"
-                        checked={item.done}
-                        onChange={() => toggleDone(idx)}
-                    />
+                    <input type="checkbox" checked={item.done} onChange={() => toggleDone(idx)} />
                     <textarea
                         ref={autoResize}
                         value={item.text}
-                        onChange={(e) => updateText(idx, e.target.value)}
+                        onChange={e => updateText(idx, e.target.value)}
                         placeholder="Nouvel item"
                         rows={1}
                         className={styles.textarea}
@@ -111,12 +108,14 @@ const ChecklistSection: FC<ChecklistSectionProps> = ({ checklist, cardId, onChan
                 </div>
             ))}
 
-            {/* Ajouter un item */}
+            {/* Ajouter un nouvel item */}
             <div className={styles.addRow}>
                 <input
                     className={styles.input}
                     placeholder="Nouvelle tâche…"
-                    onKeyDown={(e) => e.key === "Enter" && addItem()}
+                    value={newText}
+                    onChange={e => setNewText(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && addItem()}
                 />
                 <button className={styles.btn} onClick={addItem}>Ajouter</button>
             </div>

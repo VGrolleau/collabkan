@@ -1,6 +1,8 @@
 export type Column = {
     id: string;
     title: string;
+    order: number;
+    kanbanId: string;
     cards: CardElement[];
 };
 
@@ -13,18 +15,17 @@ export type Kanban = {
 
 export type CardElement = {
     id: string;
-    order: number;
     title: string;
     description?: string;
-    labels?: Label[];
-    dueDate?: Date | null;
-    checklist?: ChecklistItem[];
-    comments?: Comment[];
-    assignees?: Assignee[];
-    attachments?: Attachment[];
+    order: number;
     columnId: string;
+    dueDate?: Date | null;
+    labels: Label[];
+    assignees: User[];
+    attachments: Attachment[];
+    checklist: ChecklistItem[];
+    comments: CommentClient[];
 };
-
 export type ChecklistItem = {
     id: string;
     text: string;
@@ -37,10 +38,10 @@ export type Label = {
     color: string;
 };
 
-export type Comment = {
+export type CommentClient = {
     id: string;
     author: string;
-    date: string;
+    date: string; // ISO string
     content: string;
 };
 
