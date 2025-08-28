@@ -25,6 +25,69 @@ export type CommentClient = {
     content: string;
 };
 
+/**
+ * 🛠 Construit l'input Prisma en fonction du body reçu
+ */
+function buildCardUpdateInput(body: CardUpdateBody): Prisma.CardUpdateInput {
+    const data: Prisma.CardUpdateInput = {};
+
+    if (body.title !== undefined) data.title = body.title;
+    if (body.description !== undefined) data.description = body.description;
+    if (body.order !== undefined) data.order = body.order;
+    if (body.dueDate !== undefined)
+        data.dueDate = body.dueDate ? new Date(body.dueDate) : null;
+
+    if (body.columnId !== undefined) {
+        data.column = { connect: { id: body.columnId } };
+    }
+
+    if (body.labels !== undefined) {
+        data.labels = {
+            set: [],
+            connect: body.labels.map((l) => ({ id: l.id })),
+        };
+    }
+
+    if (body.assignees !== undefined) {
+        data.assignees = {
+            set: [],
+            connect: body.assignees.map((a) => ({ id: a.id })),
+        };
+    }
+
+    if (body.checklist) {
+        data.checklist = {
+            deleteMany: {},
+            create: body.checklist.map((item) => ({
+                text: item.text,
+                done: item.done,
+            })),
+        };
+    }
+
+    if (body.attachments) {
+        data.attachments = {
+            deleteMany: {},
+            create: body.attachments.map((a) => ({
+                filename: a.filename,
+                url: a.url,
+            })),
+        };
+    }
+
+    if (body.comments) {
+        const userId = "CURRENT_USER_ID"; // <-- à remplacer par l'ID réel
+        data.comments = {
+            create: body.comments.map((c) => ({
+                content: c.content,
+                author: { connect: { id: c.authorId || userId } },
+            })),
+        };
+    }
+
+    return data;
+}
+
 export async function PUT(
     req: Request,
     { params }: { params: { id: string } }
@@ -33,62 +96,7 @@ export async function PUT(
         const { id } = params;
         const body: CardUpdateBody = await req.json();
 
-        const data: Prisma.CardUpdateInput = {};
-
-        if (body.title !== undefined) data.title = body.title;
-        if (body.description !== undefined) data.description = body.description;
-        if (body.order !== undefined) data.order = body.order;
-        if (body.dueDate !== undefined)
-            data.dueDate = body.dueDate ? new Date(body.dueDate) : null;
-
-        if (body.columnId !== undefined) {
-            data.column = { connect: { id: body.columnId } };
-        }
-
-        if (body.labels !== undefined) {
-            data.labels = {
-                set: [],
-                connect: body.labels.map((l) => ({ id: l.id })),
-            };
-        }
-
-        if (body.assignees !== undefined) {
-            data.assignees = {
-                set: [],
-                connect: body.assignees.map((a) => ({ id: a.id })),
-            };
-        }
-
-        if (body.checklist) {
-            data.checklist = {
-                deleteMany: {},
-                create: body.checklist.map((item) => ({
-                    text: item.text,
-                    done: item.done,
-                })),
-            };
-        }
-
-        if (body.attachments) {
-            data.attachments = {
-                deleteMany: {},
-                create: body.attachments.map((a) => ({
-                    filename: a.filename,
-                    url: a.url,
-                })),
-            };
-        }
-
-        if (body.comments) {
-            // Si authorId manquant (nouveau commentaire), on peut injecter l'ID de l'utilisateur connecté
-            const userId = "CURRENT_USER_ID"; // <-- à remplacer par l'ID réel du user connecté
-            data.comments = {
-                create: body.comments.map((c) => ({
-                    content: c.content,
-                    author: { connect: { id: c.authorId || userId } },
-                })),
-            };
-        }
+        const data = buildCardUpdateInput(body);
 
         const updatedCard = await prisma.card.update({
             where: { id },
@@ -102,7 +110,6 @@ export async function PUT(
             },
         });
 
-        // 🔑 Mapper les commentaires côté client
         const mappedCard = {
             ...updatedCard,
             comments: updatedCard.comments.map((c) => ({
@@ -128,9 +135,7 @@ export async function DELETE(
 ) {
     try {
         const { id } = await ctx.params;
-
         await prisma.card.delete({ where: { id } });
-
         return new NextResponse(null, { status: 204 });
     } catch (error) {
         console.error("Erreur DELETE /api/cards/[id]:", error);
@@ -149,11 +154,11 @@ export async function GET(
         const card = await prisma.card.findUnique({
             where: { id: params.id },
             include: {
-                checklist: true,
                 labels: true,
-                comments: { include: { author: true } },
                 assignees: true,
                 attachments: true,
+                checklist: true,
+                comments: { include: { author: true } },
             },
         });
 
@@ -161,10 +166,10 @@ export async function GET(
             return NextResponse.json({ error: "Carte introuvable" }, { status: 404 });
         }
 
-        // 🔑 Mapper les commentaires pour le front
         const safeCard = {
             ...card,
-            comments: card.comments.map((c) => ({
+            dueDate: card.dueDate ? card.dueDate.toISOString() : null,
+            comments: card.comments.map(c => ({
                 id: c.id,
                 content: c.content,
                 author: c.author?.name ?? "Inconnu",

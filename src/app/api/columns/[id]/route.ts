@@ -30,3 +30,50 @@ export async function PUT(
         return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
     }
 }
+
+export async function GET(
+    _req: Request,
+    { params }: { params: { id: string } }
+) {
+    try {
+        const column = await prisma.column.findUnique({
+            where: { id: String(params.id) },
+            include: {
+                cards: {
+                    include: {
+                        labels: true,
+                        assignees: true,
+                        attachments: true,
+                        checklist: true,
+                        comments: { include: { author: true } },
+                    },
+                    orderBy: { order: "asc" },
+                },
+            },
+        });
+
+        if (!column) {
+            return NextResponse.json({ error: "Colonne introuvable" }, { status: 404 });
+        }
+
+        // Convertir les dates côté front
+        const safeColumn = {
+            ...column,
+            cards: column.cards.map(c => ({
+                ...c,
+                dueDate: c.dueDate ? c.dueDate.toISOString() : null,
+                comments: c.comments.map(cm => ({
+                    id: cm.id,
+                    content: cm.content,
+                    author: cm.author?.name ?? "Inconnu",
+                    date: cm.createdAt.toISOString(),
+                })),
+            })),
+        };
+
+        return NextResponse.json(safeColumn);
+    } catch (error) {
+        console.error("GET /api/columns/[id] error:", error);
+        return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+    }
+}

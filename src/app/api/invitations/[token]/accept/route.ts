@@ -1,53 +1,74 @@
 // src/app/api/invitations/[token]/accept/route.ts
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 
-// Le type context permet de gérer le await pour récupérer params
-export async function POST(
-    req: Request,
-    context: { params: { token: string } } | Promise<{ params: { token: string } }>
-) {
-    // On await context pour récupérer params proprement (Next.js v13+)
-    const { params } = await context;
+const JWT_SECRET = process.env.JWT_SECRET || 'ma-super-cle-secrete';
 
-    // Simule l'email de l'utilisateur connecté (à remplacer par ta logique d'auth)
-    const userEmail = 'collab@example.com';
+export async function POST(req: Request, context: { params: { token: string } }) {
+    const { params } = context;
+    const body = await req.json();
+    const { password } = body;
 
-    // Recherche l'invitation par token
+    if (!password || password.length < 6) {
+        return NextResponse.json({ message: 'Mot de passe requis (≥6 caractères)' }, { status: 400 });
+    }
+
+    // Recherche de l'invitation
     const invitation = await prisma.invitation.findUnique({
         where: { token: params.token },
     });
 
-    console.log('Invitation trouvée:', invitation);
-
     if (!invitation) {
-        return NextResponse.json({ message: 'Invitation not found' }, { status: 400 });
+        return NextResponse.json({ message: 'Invitation non trouvée' }, { status: 404 });
     }
 
     if (invitation.used) {
-        return NextResponse.json({ message: 'Invitation already used' }, { status: 400 });
+        return NextResponse.json({ message: 'Invitation déjà utilisée' }, { status: 409 });
     }
 
-    if (invitation.email !== userEmail) {
-        return NextResponse.json({ message: 'Invitation email mismatch' }, { status: 400 });
+    // Vérifie si l'utilisateur existe déjà
+    let user = await prisma.user.findUnique({ where: { email: invitation.email } });
+    if (!user) {
+        // Hash du mot de passe
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        user = await prisma.user.create({
+            data: {
+                email: invitation.email,
+                name: '', // peut être mis à jour plus tard via le front
+                password: hashedPassword,
+                role: 'COLLABORATOR',
+            },
+        });
     }
 
-    // Ajoute l'utilisateur au kanban
+    // Ajoute l'utilisateur au Kanban
     await prisma.kanban.update({
         where: { id: invitation.kanbanId },
         data: {
-            members: { connect: { email: userEmail } },
+            members: { connect: { id: user.id } },
         },
     });
 
     // Marque l'invitation comme utilisée
     await prisma.invitation.update({
         where: { token: invitation.token },
-        data: {
-            used: true,
-            usedAt: new Date(),
-        },
+        data: { used: true, usedAt: new Date() },
     });
 
-    return NextResponse.json({ message: 'Invitation accepted' });
+    // Génère un JWT pour la session de l’invité
+    const jwtToken = jwt.sign(
+        { userId: user.id, email: user.email, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+    );
+
+    return NextResponse.json({
+        message: 'Invitation acceptée',
+        token: jwtToken,
+        user: { id: user.id, email: user.email, role: user.role },
+        kanbanId: invitation.kanbanId,
+    });
 }

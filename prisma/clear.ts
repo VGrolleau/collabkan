@@ -11,7 +11,10 @@ async function clear() {
     // await prisma.column.deleteMany();
     // await prisma.kanban.deleteMany();
     // await prisma.user.deleteMany(); // à la fin, car tout est lié
-    await prisma.label.deleteMany({});
+    // await prisma.label.deleteMany({});
+    await prisma.invitation.deleteMany({
+        where: { email: "virginie@cherrygeek.fr", kanbanId: "cmefyxtqd0005ud1fv5tmh57s" }
+    });
 
     console.log("✅ Données supprimées");
 }

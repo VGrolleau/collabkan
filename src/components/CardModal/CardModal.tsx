@@ -22,6 +22,7 @@ import styles from "./CardModal.module.scss";
 
 type CardModalProps = {
     card: CardElement;
+    kanbanId: string;
     kanbanColumns: Column[];
     allLabels: Label[];
     onClose: () => void;
@@ -42,7 +43,7 @@ export type CardUpdatePayloadFull = {
     attachments?: Attachment[];
 };
 
-const CardModal: FC<CardModalProps> = ({ card, onClose, onSave, onDelete }) => {
+const CardModal: FC<CardModalProps> = ({ card, kanbanId, onClose, onSave, onDelete }) => {
     const [localCard, setLocalCard] = useState<CardElement>({
         ...card,
         checklist: card.checklist ?? [],
@@ -143,6 +144,7 @@ const CardModal: FC<CardModalProps> = ({ card, onClose, onSave, onDelete }) => {
                             onChange={labels => handleFieldChange("labels", labels)}
                         />
                         <AssigneesSection
+                            kanbanId={kanbanId}
                             assignees={localCard.assignees}
                             onChange={newAssignees => handleFieldChange("assignees", newAssignees)}
                         />

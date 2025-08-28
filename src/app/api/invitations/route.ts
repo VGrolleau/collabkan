@@ -1,59 +1,77 @@
-// src/app/api/invitations/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { randomUUID } from 'crypto';
 
 export async function POST(request: Request) {
     const body = await request.json();
-    const { email, kanbanId, role = 'COLLABORATOR' } = body;
+    const { email, userId, kanbanId, role = 'COLLABORATOR' } = body;
 
-    if (!email || !kanbanId) {
+    if (!kanbanId) {
         return NextResponse.json(
-            { error: 'Email and kanbanId are required.' },
+            { error: 'kanbanId is required.' },
+            { status: 400 }
+        );
+    }
+
+    // Si ni email ni userId
+    if (!email && !userId) {
+        return NextResponse.json(
+            { error: 'Email or userId is required.' },
             { status: 400 }
         );
     }
 
     try {
-        const existing = await prisma.invitation.findFirst({
-            where: { email, kanbanId, used: false },
-        });
+        if (email) {
+            // Invitation par email
+            const existing = await prisma.invitation.findFirst({
+                where: { email, kanbanId, used: false },
+            });
 
-        if (existing) {
+            if (existing) {
+                return NextResponse.json(
+                    {
+                        message: 'An invitation already exists.',
+                        token: existing.token,
+                    },
+                    { status: 409 }
+                );
+            }
+
+            const token = randomUUID();
+            const invitation = await prisma.invitation.create({
+                data: { email, kanbanId, token, role },
+            });
+
             return NextResponse.json(
-                {
-                    message: 'An invitation already exists.',
-                    token: existing.token,
-                },
-                { status: 409 }
+                { message: 'Invitation created successfully.', token: invitation.token },
+                { status: 201 }
             );
         }
 
-        const token = randomUUID();
+        if (userId) {
+            // Invitation pour un utilisateur existant → ajout direct au Kanban
+            // Vérifier si l'utilisateur est déjà membre
+            const kanban = await prisma.kanban.findUnique({
+                where: { id: kanbanId },
+                include: { members: true },
+            });
 
-        const invitation = await prisma.invitation.create({
-            data: {
-                email,
-                kanbanId,
-                token,
-                role,
-            },
-        });
+            if (!kanban) return NextResponse.json({ error: 'Kanban not found' }, { status: 404 });
 
-        // TODO: Envoi d'email (Resend, Mailjet, etc.)
+            if (kanban.members.some(m => m.id === userId)) {
+                return NextResponse.json({ message: 'User already a member' }, { status: 409 });
+            }
 
-        return NextResponse.json(
-            {
-                message: 'Invitation created successfully.',
-                token: invitation.token,
-            },
-            { status: 201 }
-        );
+            await prisma.kanban.update({
+                where: { id: kanbanId },
+                data: { members: { connect: { id: userId } } },
+            });
+
+            return NextResponse.json({ message: 'User added to Kanban successfully' }, { status: 200 });
+        }
     } catch (error) {
         console.error('[INVITATION_CREATE_ERROR]', error);
-        return NextResponse.json(
-            { error: 'Internal server error.' },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: 'Internal server error.' }, { status: 500 });
     }
 }

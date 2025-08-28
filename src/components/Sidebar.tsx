@@ -1,3 +1,4 @@
+// src/components/Sidebar.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -10,12 +11,12 @@ import { useUser } from "@/context/UserContext";
 type Props = {
     kanbans: Kanban[];
     onSelect: (kanban: Kanban) => void;
-    onAddKanban: (data: { title: string; description: string }) => Promise<Kanban | null>;
-    onDeleteKanban: (id: string) => Promise<void> | void;
+    onAddKanban?: (data: { title: string; description: string }) => Promise<Kanban | null>;
+    onDeleteKanban?: (id: string) => Promise<void> | void;
 };
 
 export default function Sidebar({ kanbans, onSelect, onAddKanban, onDeleteKanban }: Props) {
-    const { user } = useUser();
+    const { user } = useUser(); // ✅ utilisateur via contexte
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedKanbanId, setSelectedKanbanId] = useState<string | null>(null);
     const router = useRouter();
@@ -39,15 +40,27 @@ export default function Sidebar({ kanbans, onSelect, onAddKanban, onDeleteKanban
     const getInitials = (name?: string | null) => {
         if (!name) return "??";
         const parts = name.trim().split(/\s+/);
-        return parts.length === 1 ? parts[0][0].toUpperCase() : (parts[0][0] + parts[1][0]).toUpperCase();
+        return parts.length === 1
+            ? parts[0][0].toUpperCase()
+            : (parts[0][0] + parts[1][0]).toUpperCase();
     };
 
-    if (!user) return null;
+    if (!user) return null; // utilisateur non connecté
 
     return (
         <aside className="sidebar">
-            <div className="user-block" style={{ cursor: "pointer" }} onClick={() => router.push("/profile")}>
-                <div className="avatar">{user.avatarUrl ? <img src={user.avatarUrl} alt={user.name || "User"} /> : getInitials(user.name)}</div>
+            <div
+                className="user-block"
+                style={{ cursor: "pointer" }}
+                onClick={() => router.push("/profile")}
+            >
+                <div className="avatar">
+                    {user.avatarUrl ? (
+                        <img src={user.avatarUrl} alt={user.name || "User"} />
+                    ) : (
+                        getInitials(user.name)
+                    )}
+                </div>
                 <div className="user-info">
                     <div className="user-name">{user.name || "Utilisateur"}</div>
                     <div className="user-email">{user.email}</div>
@@ -57,25 +70,51 @@ export default function Sidebar({ kanbans, onSelect, onAddKanban, onDeleteKanban
             <div className="group-title">{`MES COLLAB'`}</div>
             <ul className="sidebar-list">
                 {kanbans.map(k => (
-                    <li key={k.id} className={clsx("sidebar-item", selectedKanbanId === k.id && "active")} onClick={() => { onSelect(k); setSelectedKanbanId(k.id); }}>
+                    <li
+                        key={k.id}
+                        className={clsx("sidebar-item", selectedKanbanId === k.id && "active")}
+                        onClick={() => { onSelect(k); setSelectedKanbanId(k.id); }}
+                    >
                         <div className="sidebar-item-row">
                             <span>{k.name}</span>
-                            <button className="delete-btn" onClick={async e => { e.stopPropagation(); await onDeleteKanban(k.id); if (selectedKanbanId === k.id) setSelectedKanbanId(null); }} title="Supprimer">🗑️</button>
+                            {onDeleteKanban && (
+                                <button
+                                    className="delete-btn"
+                                    onClick={async e => {
+                                        e.stopPropagation();
+                                        await onDeleteKanban(k.id);
+                                        if (selectedKanbanId === k.id) setSelectedKanbanId(null);
+                                    }}
+                                    title="Supprimer"
+                                >
+                                    🗑️
+                                </button>
+                            )}
                         </div>
                     </li>
                 ))}
             </ul>
 
-            <div className="group-title">ACTIONS</div>
-            <div className="create-button" onClick={() => setIsModalOpen(true)}>+ Créer un tableau</div>
+            {onAddKanban ? (
+                <>
+                    <div className="group-title">ACTIONS</div>
+                    <div className="create-button" onClick={() => setIsModalOpen(true)}>
+                        + Créer un tableau
+                    </div>
+                </>
+            ) : null}
 
             {isModalOpen && (
                 <AddKanbanModal
                     onClose={() => setIsModalOpen(false)}
                     onAdd={async data => {
+                        if (!onAddKanban) return;
                         const newKanban = await onAddKanban(data);
                         setIsModalOpen(false);
-                        if (newKanban) { setSelectedKanbanId(newKanban.id); onSelect(newKanban); }
+                        if (newKanban) {
+                            setSelectedKanbanId(newKanban.id);
+                            onSelect(newKanban);
+                        }
                     }}
                 />
             )}

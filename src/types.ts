@@ -11,6 +11,7 @@ export type Kanban = {
     name: string;
     description?: string;
     columns: Column[];
+    members?: User[];
 };
 
 export type CardElement = {

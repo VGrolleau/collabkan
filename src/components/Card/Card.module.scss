@@ -1,41 +1,68 @@
 /* src/components/Card/Card.module.scss */
 
-.card {
-    padding: 10px 12px;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    cursor: grab;
-    box-shadow: var(--shadow-soft);
-    transition: transform 0.08s ease, box-shadow 0.2s ease;
-    color: var(--text-primary);
-    width: 100%;
-    min-height: 60px;
+.card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: grab; box-shadow: var(--shadow-soft); transition: transform 200ms ease, opacity 150ms ease; display: flex; flex-direction: column; gap: 8px; }
+.card:active { cursor: grabbing; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(76,139,245,.25); }
+.labels { display: flex; gap: 6px; flex-wrap: wrap; }
+.label { height: 8px; min-width: 36px; border-radius: 999px; opacity: .9; }
+
+/* Exemple de couleurs pour labels, à ajuster selon vos ids */
+.label.green{ background:#61bd4f;}
+.label.yellow{ background:#f2d600;}
+.label.orange{background:#ff9f1a;}
+.label.red{background:#eb5a46;}
+.label.purple{background:#c377e0;}
+.label.blue{background:#0079bf;}
+
+.title {
+  font-weight: 500;
+  font-size: 0.95rem;
+  margin-top: 4px;
 }
 
-.card:active {
-    cursor: grabbing;
-}
+.cardMeta { display: flex; gap: 10px; align-items: center; color: var(--text-secondary); font-size: 12px; }
 
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 14px rgba(76,139,245,0.25);
-}
-
-/* Due date tag */
 .dueDateTag {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.3rem 0.6rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
 
-    &.red { background-color: #e53935; }
-    &.orange { background-color: #fb8c00; }
-    &.grey { background-color: var(--muted); color: var(--text-secondary); }
+.dueDateTag.grey { background-color: #1f1f2d; color: #fff; }
+.dueDateTag.red { background-color: #1f1f2d; color: #eb5a46; }
+.dueDateTag.orange { background-color: #1f1f2d; color: #e67e22; }
+
+.assignees {
+  display: flex;
+  gap: 2px;
+}
+
+.avatar, .initials {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #bdc3c7;
+  color: #fff;
+  text-transform: uppercase;
+}
+
+.avatar {
+  object-fit: cover;
+}
+
+.initials {
+  font-weight: 600;
+}
+
+.button {
+  background: none;
+  border: none;
+  cursor: pointer;
 }

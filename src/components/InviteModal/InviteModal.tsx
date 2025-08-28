@@ -1,19 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './InviteModal.module.scss';
+import { User, Kanban } from '@/types';
 
 interface Props {
-    kanbanId: string | number;
+    kanban: Kanban;
 }
 
-function isValidEmail(email: string) {
-    return /\S+@\S+\.\S+/.test(email);
-}
+type InvitePayload = {
+    kanbanId: string;
+    email?: string;
+    userId?: string;
+};
 
-export default function InviteModal({ kanbanId }: Props) {
+export default function InviteModal({ kanban }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const [email, setEmail] = useState('');
+    const [existingUsers, setExistingUsers] = useState<User[]>([]);
+    const [selectedUserId, setSelectedUserId] = useState('');
     const [invitationLink, setInvitationLink] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -21,17 +26,39 @@ export default function InviteModal({ kanbanId }: Props) {
     const toggleModal = () => {
         setIsOpen(!isOpen);
         if (isOpen) {
-            // Reset des champs quand on ferme la modale
+            // reset champs quand on ferme
             setEmail('');
+            setSelectedUserId('');
             setInvitationLink('');
             setError('');
             setLoading(false);
         }
     };
 
+    const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        fetch('/api/users')
+            .then(res => res.json())
+            .then((data: User[]) => setExistingUsers(data))
+            .catch(console.error);
+    }, [isOpen]);
+
     const handleInvite = async () => {
-        if (!isValidEmail(email)) {
-            setError('Veuillez entrer un email valide');
+        if (!kanban) {
+            setError("Kanban non défini");
+            return;
+        }
+
+        if (!email && !selectedUserId) {
+            setError('Veuillez saisir un email ou sélectionner un utilisateur existant.');
+            return;
+        }
+
+        if (email && !isValidEmail(email)) {
+            setError('Email invalide');
             return;
         }
 
@@ -39,30 +66,39 @@ export default function InviteModal({ kanbanId }: Props) {
         setError('');
 
         try {
+            const body: InvitePayload = {
+                kanbanId: kanban.id,
+                ...(email ? { email } : {}),
+                ...(selectedUserId ? { userId: selectedUserId } : {}),
+            };
+
             const res = await fetch('/api/invitations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, kanbanId }),
+                body: JSON.stringify(body),
             });
 
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.message || 'Erreur lors de la création du lien');
-            }
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || data.message || 'Erreur');
 
-            const { token } = await res.json();
-            const baseUrl = window.location.origin;
-            setInvitationLink(`${baseUrl}/api/invitations/${token}/accept`);
-        } catch (err: unknown) {
-            if (err instanceof Error) {
-                setError(err.message);
+            if (email && data.token) {
+                const baseUrl = window.location.origin;
+                setInvitationLink(`${baseUrl}/invitations/${data.token}/accept`);
             } else {
-                setError('Une erreur inconnue est survenue');
+                alert(`Utilisateur ajouté au Kanban !`);
+                toggleModal();
             }
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Une erreur inconnue est survenue');
         } finally {
             setLoading(false);
         }
     };
+
+    // Filtrer les utilisateurs déjà membres du Kanban
+    const availableUsers = existingUsers.filter(
+        u => !kanban.members?.some(m => m.id === u.id)
+    );
 
     return (
         <>
@@ -74,26 +110,48 @@ export default function InviteModal({ kanbanId }: Props) {
                 <div className={styles.modalOverlay} onClick={toggleModal}>
                     <div className={styles.modal} onClick={e => e.stopPropagation()}>
                         <h2>Inviter un membre</h2>
-                        <input
-                            type="email"
-                            placeholder="Email du collaborateur"
-                            value={email}
-                            onChange={e => setEmail(e.target.value)}
-                            className={styles.inputField}
-                        />
-                        <button onClick={handleInvite} disabled={loading || !isValidEmail(email)}>
-                            {loading ? 'Génération...' : 'Générer le lien'}
-                        </button>
+
+                        <div>
+                            <select
+                                value={selectedUserId}
+                                onChange={e => setSelectedUserId(e.target.value)}
+                            >
+                                <option value="">Sélectionner un utilisateur existant</option>
+                                {availableUsers.map(u => (
+                                    <option key={u.id} value={u.id}>
+                                        {u.email}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <p>Ou saisir un nouvel email :</p>
+                            <input
+                                type="email"
+                                placeholder="Email"
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                            />
+                        </div>
+
+                        <div style={{ marginTop: '1rem' }}>
+                            <button onClick={handleInvite} disabled={loading}>
+                                {loading ? 'Invitation…' : 'Inviter'}
+                            </button>
+                            <button className={styles.closeButton} onClick={toggleModal}>
+                                Fermer
+                            </button>
+                        </div>
+
                         {invitationLink && (
                             <div className={styles.linkBox}>
                                 <p>Lien généré :</p>
                                 <code>{invitationLink}</code>
                             </div>
                         )}
+
                         {error && <p className={styles.error}>{error}</p>}
-                        <button className={styles.closeButton} onClick={toggleModal}>
-                            Fermer
-                        </button>
                     </div>
                 </div>
             )}
