@@ -3,18 +3,19 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   name          String?
-  password      String
   role          Role      @default(COLLABORATOR)
   createdAt     DateTime  @default(now())
   avatarUrl     String?
+  password      String
   comments      Comment[]
   ownedKanbans  Kanban[]  @relation("KanbanOwner")
   assignedCards Card[]    @relation("CardAssignees")

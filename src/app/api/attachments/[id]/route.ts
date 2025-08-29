@@ -28,14 +28,14 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     }
 }
 
-export async function GET(_req: Request, { params }: { params: { cardId: string } }) {
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
     try {
         const attachments = await prisma.attachment.findMany({
-            where: { cardId: params.cardId },
+            where: { cardId: params.id },
         });
         return NextResponse.json(attachments);
     } catch (error) {
-        console.error('GET /api/attachments/[cardId] error:', error);
+        console.error('GET /api/attachments/[id] error:', error);
         return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
     }
 }
