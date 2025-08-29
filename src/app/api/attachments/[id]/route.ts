@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(
-    req: Request,
-    context: { params: { id: string } } // c’est la forme attendue
-) {
-    const { id } = context.params;
+type RequestEvent = {
+    params: { id: string };
+};
 
+export async function GET(_req: Request, event: RequestEvent) {
+    const { id } = event.params;
     try {
         const attachments = await prisma.attachment.findMany({
             where: { cardId: id },
@@ -18,12 +18,8 @@ export async function GET(
     }
 }
 
-export async function PUT(
-    req: Request,
-    context: { params: { id: string } }
-) {
-    const { id } = context.params;
-
+export async function PUT(req: Request, event: RequestEvent) {
+    const { id } = event.params;
     try {
         const { filename, url } = await req.json();
         const updated = await prisma.attachment.update({
@@ -40,12 +36,8 @@ export async function PUT(
     }
 }
 
-export async function DELETE(
-    req: Request,
-    context: { params: { id: string } }
-) {
-    const { id } = context.params;
-
+export async function DELETE(_req: Request, event: RequestEvent) {
+    const { id } = event.params;
     try {
         await prisma.attachment.delete({ where: { id } });
         return NextResponse.json({ success: true });
