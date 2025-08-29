@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-type RequestEvent = {
-    params: { id: string };
-};
+export async function GET(req: Request) {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) {
+        return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+    }
 
-export async function GET(_req: Request, event: RequestEvent) {
-    const { id } = event.params;
     try {
         const attachments = await prisma.attachment.findMany({
             where: { cardId: id },
@@ -18,8 +19,13 @@ export async function GET(_req: Request, event: RequestEvent) {
     }
 }
 
-export async function PUT(req: Request, event: RequestEvent) {
-    const { id } = event.params;
+export async function PUT(req: Request) {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) {
+        return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+    }
+
     try {
         const { filename, url } = await req.json();
         const updated = await prisma.attachment.update({
@@ -36,8 +42,13 @@ export async function PUT(req: Request, event: RequestEvent) {
     }
 }
 
-export async function DELETE(_req: Request, event: RequestEvent) {
-    const { id } = event.params;
+export async function DELETE(req: Request) {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) {
+        return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+    }
+
     try {
         await prisma.attachment.delete({ where: { id } });
         return NextResponse.json({ success: true });
