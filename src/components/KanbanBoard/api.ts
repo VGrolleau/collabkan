@@ -2,13 +2,13 @@ import { Kanban, Column } from "../../types";
 
 const API_BASE = "/api/kanban";
 
-export async function fetchKanban(id: number): Promise<Kanban> {
+export async function fetchKanban(id: string): Promise<Kanban> {
     const res = await fetch(`${API_BASE}/${id}`);
     if (!res.ok) throw new Error("Erreur lors du chargement du kanban");
     return res.json();
 }
 
-export async function updateKanbanColumns(id: number, columns: Column[]): Promise<void> {
+export async function updateKanbanColumns(id: string, columns: Column[]): Promise<void> {
     const res = await fetch(`${API_BASE}/${id}/columns`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -17,7 +17,7 @@ export async function updateKanbanColumns(id: number, columns: Column[]): Promis
     if (!res.ok) throw new Error("Erreur lors de la mise à jour des colonnes");
 }
 
-export async function updateKanbanInfo(id: number, updated: { name?: string; description?: string }): Promise<void> {
+export async function updateKanbanInfo(id: string, updated: { name?: string; description?: string }): Promise<void> {
     const res = await fetch(`${API_BASE}/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },

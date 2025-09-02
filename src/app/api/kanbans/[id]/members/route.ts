@@ -1,25 +1,23 @@
+// src/app/api/kanbans/[id]/members/route.ts
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-type Params = {
-    params: { id: string };
-};
-
-export async function GET(req: Request, { params }: Params) {
+export async function GET(
+    _req: Request,
+    context: { params: Promise<{ id: string }> }
+) {
     try {
-        const kanbanId = params.id;
+        const { id } = await context.params;
+
+        if (!id) {
+            return NextResponse.json({ error: "Missing id" }, { status: 400 });
+        }
 
         const kanban = await prisma.kanban.findUnique({
-            where: { id: kanbanId },
+            where: { id },
             include: {
                 members: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                        avatarUrl: true,
-                        role: true,
-                    },
+                    select: { id: true, name: true, email: true, avatarUrl: true, role: true },
                 },
             },
         });
@@ -30,7 +28,7 @@ export async function GET(req: Request, { params }: Params) {
 
         return NextResponse.json(kanban.members);
     } catch (error) {
-        console.error("Erreur API /kanbans/[id]/members :", error);
+        console.error("GET /api/kanbans/[id]/members error:", error);
         return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
     }
 }

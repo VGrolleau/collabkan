@@ -1,18 +1,23 @@
-// src/app/api/invitations/[token]/route.ts
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 
-type Params = { params: { token: string } };
+export async function GET(req: Request) {
+    const token = new URL(req.url).searchParams.get('token');
+    if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 });
 
-export async function GET(_: Request, { params }: Params) {
-    const invitation = await prisma.invitation.findUnique({
-        where: { token: params.token },
-        include: { kanban: true },
-    });
+    try {
+        const invitation = await prisma.invitation.findUnique({
+            where: { token },
+            include: { kanban: true },
+        });
 
-    if (!invitation || invitation.used) {
-        return NextResponse.json({ message: 'Invalid or used invitation' }, { status: 404 });
+        if (!invitation || invitation.used) {
+            return NextResponse.json({ message: 'Invalid or used invitation' }, { status: 404 });
+        }
+
+        return NextResponse.json({ invitation });
+    } catch (error) {
+        console.error('GET /api/invitations/[token] error:', error);
+        return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
     }
-
-    return NextResponse.json({ invitation });
 }

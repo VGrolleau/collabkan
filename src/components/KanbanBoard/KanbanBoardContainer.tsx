@@ -8,7 +8,7 @@ import { fetchKanban, updateKanbanColumns, updateKanbanInfo } from "./api";
 export default function KanbanBoardContainer() {
     const [kanban, setKanban] = useState<Kanban | null>(null);
     const [loading, setLoading] = useState(true);
-    const kanbanId = 1;
+    const kanbanId = "1";
 
     useEffect(() => {
         fetchKanban(kanbanId)
@@ -52,6 +52,18 @@ export default function KanbanBoardContainer() {
             kanban={kanban}
             updateKanbanColumns={handleUpdateColumns}
             updateKanbanInfo={handleUpdateInfo}
+            onDeleteKanban={async (id) => console.log("Supprimer le kanban", id)}
+            userRights={{
+                canEditKanban: true,
+                canDeleteKanban: true,
+                canAddColumn: true,
+                canEditColumn: true,
+                canDeleteColumn: true,
+                canAddCard: true,
+                canEditCard: true,
+                canDeleteCard: true,
+                canInvite: true,
+            }}
         />
     );
 }

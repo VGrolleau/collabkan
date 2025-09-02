@@ -1,9 +1,8 @@
 // src/app/api/cards/[id]/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
-// Type côté requête PUT
 type CardUpdateBody = {
     title?: string;
     description?: string;
@@ -17,17 +16,6 @@ type CardUpdateBody = {
     dueDate?: string | null;
 };
 
-// Type côté client (comme dans CardModal.tsx)
-export type CommentClient = {
-    id: string;
-    author: string;
-    date: string;
-    content: string;
-};
-
-/**
- * 🛠 Construit l'input Prisma en fonction du body reçu
- */
 function buildCardUpdateInput(body: CardUpdateBody): Prisma.CardUpdateInput {
     const data: Prisma.CardUpdateInput = {};
 
@@ -42,41 +30,29 @@ function buildCardUpdateInput(body: CardUpdateBody): Prisma.CardUpdateInput {
     }
 
     if (body.labels !== undefined) {
-        data.labels = {
-            set: [],
-            connect: body.labels.map((l) => ({ id: l.id })),
-        };
+        data.labels = { set: [], connect: body.labels.map((l) => ({ id: l.id })) };
     }
 
     if (body.assignees !== undefined) {
-        data.assignees = {
-            set: [],
-            connect: body.assignees.map((a) => ({ id: a.id })),
-        };
+        data.assignees = { set: [], connect: body.assignees.map((a) => ({ id: a.id })) };
     }
 
     if (body.checklist) {
         data.checklist = {
             deleteMany: {},
-            create: body.checklist.map((item) => ({
-                text: item.text,
-                done: item.done,
-            })),
+            create: body.checklist.map((item) => ({ text: item.text, done: item.done })),
         };
     }
 
     if (body.attachments) {
         data.attachments = {
             deleteMany: {},
-            create: body.attachments.map((a) => ({
-                filename: a.filename,
-                url: a.url,
-            })),
+            create: body.attachments.map((a) => ({ filename: a.filename, url: a.url })),
         };
     }
 
     if (body.comments) {
-        const userId = "CURRENT_USER_ID"; // <-- à remplacer par l'ID réel
+        const userId = "CURRENT_USER_ID"; // <-- remplace par l'ID réel
         data.comments = {
             create: body.comments.map((c) => ({
                 content: c.content,
@@ -88,14 +64,14 @@ function buildCardUpdateInput(body: CardUpdateBody): Prisma.CardUpdateInput {
     return data;
 }
 
+// ✅ params est une Promise en Next 15 → on l'attend et on type la Promise.
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> } // ou: ctx: RouteContext<'/api/cards/[id]'>
 ) {
     try {
-        const { id } = params;
+        const { id } = await context.params;
         const body: CardUpdateBody = await req.json();
-
         const data = buildCardUpdateInput(body);
 
         const updatedCard = await prisma.card.update({
@@ -127,14 +103,12 @@ export async function PUT(
     }
 }
 
-export const dynamic = "force-dynamic";
-
 export async function DELETE(
-    _req: NextRequest,
-    ctx: { params: Promise<{ id: string }> }
+    _req: Request,
+    context: { params: Promise<{ id: string }> } // idem: Promise
 ) {
     try {
-        const { id } = await ctx.params;
+        const { id } = await context.params;
         await prisma.card.delete({ where: { id } });
         return new NextResponse(null, { status: 204 });
     } catch (error) {
@@ -148,11 +122,15 @@ export async function DELETE(
 
 export async function GET(
     _req: Request,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> } // idem: Promise
+    // alternative équivalente et bien typée :
+    // ctx: RouteContext<'/api/cards/[id]'>
 ) {
     try {
+        const { id } = await context.params;
+
         const card = await prisma.card.findUnique({
-            where: { id: params.id },
+            where: { id },
             include: {
                 labels: true,
                 assignees: true,
@@ -169,7 +147,7 @@ export async function GET(
         const safeCard = {
             ...card,
             dueDate: card.dueDate ? card.dueDate.toISOString() : null,
-            comments: card.comments.map(c => ({
+            comments: card.comments.map((c) => ({
                 id: c.id,
                 content: c.content,
                 author: c.author?.name ?? "Inconnu",
@@ -183,3 +161,5 @@ export async function GET(
         return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
     }
 }
+
+export const dynamic = "force-dynamic";

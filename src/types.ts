@@ -25,7 +25,7 @@ export type CardElement = {
     assignees: User[];
     attachments: Attachment[];
     checklist: ChecklistItem[];
-    comments: CommentClient[];
+    comments: Comment[];
 };
 export type ChecklistItem = {
     id: string;
@@ -39,7 +39,7 @@ export type Label = {
     color: string;
 };
 
-export type CommentClient = {
+export type Comment = {
     id: string;
     author: string;
     date: string; // ISO string
