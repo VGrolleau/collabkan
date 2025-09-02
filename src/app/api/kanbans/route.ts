@@ -64,7 +64,13 @@ export async function GET(request: Request) {
             include: {
                 columns: {
                     include: {
-                        cards: true,
+                        cards: {
+                            select: {
+                                id: true,
+                                title: true,
+                                order: true,
+                            },
+                        },
                     },
                 },
             },
