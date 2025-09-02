@@ -10,7 +10,8 @@
     "seed": "ts-node prisma/seed.ts",
     "clear": "ts-node prisma/clear.ts",
     "vercel:dev": "vercel dev",
-    "vercel:pull": "vercel env pull .env.local"
+    "vercel:pull": "vercel env pull .env.local",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
