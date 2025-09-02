@@ -9,8 +9,6 @@
     "lint": "next lint",
     "seed": "ts-node prisma/seed.ts",
     "clear": "ts-node prisma/clear.ts",
-    "vercel:dev": "vercel dev",
-    "vercel:pull": "vercel env pull .env.local",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -44,7 +42,6 @@
     "eslint-config-next": "15.4.3",
     "prisma": "^6.12.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5",
-    "vercel": "^46.1.1"
+    "typescript": "^5"
   }
 }
