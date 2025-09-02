@@ -5,8 +5,11 @@ import bcrypt from 'bcrypt';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'ma-super-cle-secrete';
 
-export async function POST(req: Request) {
-    const token = new URL(req.url).searchParams.get('token');
+export async function POST(
+    req: Request,
+    context: { params: Promise<{ token: string }> }
+) {
+    const { token } = await context.params;
     if (!token) return NextResponse.json({ error: 'Missing token' }, { status: 400 });
 
     const body = await req.json();
