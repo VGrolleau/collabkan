@@ -15,8 +15,14 @@ export async function GET(
             include: {
                 columns: {
                     orderBy: { order: "asc" },
-                    include: {
-                        cards: { orderBy: { id: "asc" } },
+                    select: {
+                        id: true,
+                        title: true,
+                        order: true,
+                        cards: {
+                            orderBy: { order: "asc" },
+                            select: { id: true, title: true, order: true, description: true }
+                        },
                     },
                 },
             },

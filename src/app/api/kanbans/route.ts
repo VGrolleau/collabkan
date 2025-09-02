@@ -55,30 +55,29 @@ export async function GET(request: Request) {
     }
 
     try {
+        // Charger uniquement les infos essentielles pour la liste
         const kanbans = await prisma.kanban.findMany({
-            where: {
-                members: {
-                    some: { id: user.id },
-                },
-            },
-            include: {
+            where: { members: { some: { id: user.id } } },
+            select: {
+                id: true,
+                name: true,
+                description: true,
                 columns: {
-                    include: {
-                        cards: {
-                            select: {
-                                id: true,
-                                title: true,
-                                order: true,
-                            },
-                        },
+                    select: {
+                        id: true,
+                        title: true,
+                        order: true,
+                        // juste le nombre de cartes pour l'aperçu
+                        _count: { select: { cards: true } },
                     },
+                    orderBy: { order: "asc" },
                 },
             },
         });
 
         return NextResponse.json(kanbans);
     } catch (error) {
-        console.error(error);
+        console.error("GET /api/kanbans error:", error);
         return NextResponse.json({ error: "Erreur lors de la récupération" }, { status: 500 });
     }
 }
