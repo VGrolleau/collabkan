@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import styles from './AcceptInvitation.module.scss';
+// import styles from './AcceptInvitation.module.scss';
 
 export default function AcceptInvitationTest() {
     const router = useRouter();
@@ -49,7 +49,7 @@ export default function AcceptInvitationTest() {
             }
 
             setUserId(data.user.id);
-            setMessage('Mot de passe créé ! Redirection vers le Kanban…');
+            setMessage('Mot de passe créé ! Redirection vers la page de connexion…');
 
             setTimeout(() => {
                 router.push(`/`);
@@ -61,51 +61,47 @@ export default function AcceptInvitationTest() {
         }
     };
 
-    const handleDeleteUser = async () => {
-        if (!userId) return;
-        if (!confirm('Supprimer cet utilisateur pour tester à nouveau ?')) return;
-
-        try {
-            const res = await fetch(`/api/test/delete-user/${userId}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Erreur lors de la suppression');
-            setMessage('Utilisateur supprimé. Vous pouvez retester l’invitation.');
-            setUserId(null);
-            setPassword('');
-        } catch (err: unknown) {
-            if (err instanceof Error) setError(err.message);
-            else setError('Erreur inconnue lors de la suppression');
-        }
-    };
-
-    if (!token) return <p className={styles.error}>Token manquant</p>;
+    if (!token) return <p style={{ color: "red", fontWeight: "bold" }}>Token manquant</p>;
 
     return (
-        <div className={styles.container}>
-            {error && <p className={styles.error}>{error}</p>}
-            {message && <p className={styles.success}>{message}</p>}
+        <section className="auth">
+            <div className="auth-card">
+                <div className="auth-title">Créer votre mot de passe</div>
+                <div className="auth-sub">
+                    Entrez un mot de passe pour activer votre compte et rejoindre le tableau.
+                </div>
 
-            {!userId && (
-                <>
-                    <label>Créer votre mot de passe</label>
-                    <input
-                        type="password"
-                        placeholder="Mot de passe"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        className={styles.inputField}
-                    />
-                    <button className={styles.openButton} onClick={handleAccept} disabled={loading}>
-                        {loading ? 'Validation…' : 'Valider'}
-                    </button>
-                </>
-            )}
+                {error && <p className="text-red-600 text-sm">{error}</p>}
+                {message && <p className="text-green-600 text-sm">{message}</p>}
 
-            {userId && !loading && (
-                <button className={styles.openButton} onClick={handleDeleteUser}>
-                    Supprimer l’utilisateur (test)
-                </button>
-            )}
-        </div>
+                {!userId && (
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            handleAccept();
+                        }}
+                        className="space-y-4"
+                    >
+                        <div className="field">
+                            <label className="label">Mot de passe</label>
+                            <input
+                                type="password"
+                                className="input"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div className="btns-connection">
+                            <button type="submit" className="btn primary" disabled={loading}>
+                                {loading ? 'Validation…' : 'Valider'}
+                            </button>
+                        </div>
+                    </form>
+                )}
+            </div>
+        </section>
     );
 }
