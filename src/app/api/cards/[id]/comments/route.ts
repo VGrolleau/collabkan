@@ -2,8 +2,8 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET(req: Request, context: { params: { id: string } }) {
-    const { id: cardId } = context.params;
+export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
+    const { id: cardId } = await context.params;
 
     const comments = await prisma.comment.findMany({
         where: { cardId },
@@ -22,8 +22,8 @@ export async function GET(req: Request, context: { params: { id: string } }) {
     return NextResponse.json(mapped);
 }
 
-export async function POST(req: Request, context: { params: { id: string } }) {
-    const { id: cardId } = context.params;
+export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
+    const { id: cardId } = await context.params;
     const { content, authorId } = await req.json();
 
     if (!content || !authorId) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
