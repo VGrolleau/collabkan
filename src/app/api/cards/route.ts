@@ -1,26 +1,5 @@
-// src/app/api/cards/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-
-// ---- GET toutes les cartes triées ----
-export async function GET() {
-    try {
-        const cards = await prisma.card.findMany({
-            orderBy: [
-                { columnId: "asc" }, // d’abord par colonne
-                { order: "asc" },    // puis par ordre
-            ],
-        });
-
-        return NextResponse.json(cards);
-    } catch (error) {
-        console.error("Erreur récupération cartes:", error);
-        return NextResponse.json(
-            { error: "Erreur serveur" },
-            { status: 500 }
-        );
-    }
-}
 
 // ---- POST nouvelle carte ----
 export async function POST(request: Request) {
@@ -44,7 +23,7 @@ export async function POST(request: Request) {
                 title,
                 description,
                 columnId,
-                order: existingCards, // 0-based, la nouvelle sera à la fin
+                order: existingCards, // dernière position
             },
         });
 

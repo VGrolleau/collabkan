@@ -1,4 +1,3 @@
-// src/app/api/cards/[id]/route.ts
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -8,11 +7,6 @@ type CardUpdateBody = {
     description?: string;
     order?: number;
     columnId?: string;
-    labels?: { id: string }[];
-    assignees?: { id: string }[];
-    attachments?: { filename: string; url: string }[];
-    checklist?: { text: string; done: boolean }[];
-    comments?: { content: string; authorId?: string }[];
     dueDate?: string | null;
 };
 
@@ -29,45 +23,13 @@ function buildCardUpdateInput(body: CardUpdateBody): Prisma.CardUpdateInput {
         data.column = { connect: { id: body.columnId } };
     }
 
-    if (body.labels !== undefined) {
-        data.labels = { set: [], connect: body.labels.map((l) => ({ id: l.id })) };
-    }
-
-    if (body.assignees !== undefined) {
-        data.assignees = { set: [], connect: body.assignees.map((a) => ({ id: a.id })) };
-    }
-
-    if (body.checklist) {
-        data.checklist = {
-            deleteMany: {},
-            create: body.checklist.map((item) => ({ text: item.text, done: item.done })),
-        };
-    }
-
-    if (body.attachments) {
-        data.attachments = {
-            deleteMany: {},
-            create: body.attachments.map((a) => ({ filename: a.filename, url: a.url })),
-        };
-    }
-
-    if (body.comments) {
-        const userId = "CURRENT_USER_ID"; // <-- remplace par l'ID réel
-        data.comments = {
-            create: body.comments.map((c) => ({
-                content: c.content,
-                author: { connect: { id: c.authorId || userId } },
-            })),
-        };
-    }
-
     return data;
 }
 
-// ✅ params est une Promise en Next 15 → on l'attend et on type la Promise.
+// ---- PUT mise à jour carte ----
 export async function PUT(
     req: Request,
-    context: { params: Promise<{ id: string }> } // ou: ctx: RouteContext<'/api/cards/[id]'>
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await context.params;
@@ -77,35 +39,19 @@ export async function PUT(
         const updatedCard = await prisma.card.update({
             where: { id },
             data,
-            include: {
-                labels: true,
-                checklist: true,
-                assignees: true,
-                attachments: true,
-                comments: { include: { author: true } },
-            },
         });
 
-        const mappedCard = {
-            ...updatedCard,
-            comments: updatedCard.comments.map((c) => ({
-                id: c.id,
-                content: c.content,
-                author: c.author?.name || "Inconnu",
-                date: c.createdAt.toISOString(),
-            })),
-        };
-
-        return NextResponse.json(mappedCard);
+        return NextResponse.json(updatedCard);
     } catch (error) {
         console.error("Erreur update card:", error);
         return new NextResponse("Erreur interne", { status: 500 });
     }
 }
 
+// ---- DELETE suppression carte ----
 export async function DELETE(
     _req: Request,
-    context: { params: Promise<{ id: string }> } // idem: Promise
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await context.params;
@@ -117,48 +63,6 @@ export async function DELETE(
             { error: "Impossible de supprimer la carte" },
             { status: 500 }
         );
-    }
-}
-
-export async function GET(
-    _req: Request,
-    context: { params: Promise<{ id: string }> } // idem: Promise
-    // alternative équivalente et bien typée :
-    // ctx: RouteContext<'/api/cards/[id]'>
-) {
-    try {
-        const { id } = await context.params;
-
-        const card = await prisma.card.findUnique({
-            where: { id },
-            include: {
-                labels: true,
-                assignees: true,
-                attachments: true,
-                checklist: true,
-                comments: { include: { author: true } },
-            },
-        });
-
-        if (!card) {
-            return NextResponse.json({ error: "Carte introuvable" }, { status: 404 });
-        }
-
-        const safeCard = {
-            ...card,
-            dueDate: card.dueDate ? card.dueDate.toISOString() : null,
-            comments: card.comments.map((c) => ({
-                id: c.id,
-                content: c.content,
-                author: c.author?.name ?? "Inconnu",
-                date: c.createdAt.toISOString(),
-            })),
-        };
-
-        return NextResponse.json(safeCard);
-    } catch (error) {
-        console.error("GET /api/cards/[id] error:", error);
-        return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
     }
 }
 

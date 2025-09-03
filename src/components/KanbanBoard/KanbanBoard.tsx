@@ -1,3 +1,4 @@
+// src/components/KanbanBoard/KanbanBoard.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -29,41 +30,32 @@ type DraggingState = {
     fromColId: string | number | null;
 };
 
-export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanInfo, onDeleteKanban, userRights }: KanbanBoardProps) {
-    const [columns, setColumns] = useState<Column[]>([]);
+export default function KanbanBoard({
+    kanban,
+    updateKanbanColumns,
+    updateKanbanInfo,
+    onDeleteKanban,
+    userRights,
+}: KanbanBoardProps) {
+    const [columns, setColumns] = useState<Column[]>(kanban.columns);
     const [editingId, setEditingId] = useState<string | number | null>(null);
     const [newColumnName, setNewColumnName] = useState("");
     const [selectedCard, setSelectedCard] = useState<CardElement | null>(null);
     const [newCardTitle, setNewCardTitle] = useState<Record<string | number, string>>({});
     const dragging = useRef<DraggingState>({ card: null, fromColId: null });
 
-    // === Chargement initial complet des cartes ===
+    // 🔹 Quand le kanban change (par ex. rechargement via API), on met à jour les colonnes
     useEffect(() => {
-        const fetchFullCards = async () => {
-            try {
-                const updatedColumns = await Promise.all(
-                    kanban.columns.map(async col => {
-                        const fullCards = await Promise.all(
-                            (col.cards ?? []).map(async c => {
-                                const res = await fetch(`/api/cards/${c.id}`);
-                                if (!res.ok) return c; // fallback si erreur
-                                const fullCard: CardElement = await res.json();
-                                return {
-                                    ...fullCard,
-                                    dueDate: fullCard.dueDate ? new Date(fullCard.dueDate) : null,
-                                };
-                            })
-                        );
-                        return { ...col, cards: fullCards.sort((a, b) => a.order - b.order) };
-                    })
-                );
-                setColumns(updatedColumns);
-            } catch (err) {
-                console.error("Erreur chargement complet des cartes:", err);
-            }
-        };
-        fetchFullCards();
-    }, [kanban.columns]);
+        setColumns(
+            kanban.columns.map(col => ({
+                ...col,
+                cards: (col.cards ?? []).map(c => ({
+                    ...c,
+                    dueDate: c.dueDate ? new Date(c.dueDate) : null,
+                })),
+            }))
+        );
+    }, [kanban]);
 
     // ============ DRAG & DROP ============
     const getInsertIndexFromPlaceholder = (container: HTMLElement, placeholder: HTMLElement) => {
@@ -249,18 +241,9 @@ export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanI
         setNewCardTitle(prev => ({ ...prev, [colId]: "" }));
     };
 
-    const handleCardClick = async (card: CardElement) => {
-        try {
-            const res = await fetch(`/api/cards/${card.id}`);
-            if (!res.ok) throw new Error("Impossible de charger la carte");
-            const full: CardElement = await res.json();
-            setSelectedCard({
-                ...full, dueDate: full.dueDate ? new Date(full.dueDate) : null,
-            });
-        } catch (err) {
-            console.error(err);
-            alert("Erreur lors du chargement de la carte");
-        }
+    const handleCardClick = (card: CardElement) => {
+        // ✅ Plus besoin de refetch la carte : elle est déjà enrichie
+        setSelectedCard(card);
     };
 
     const handleCardSave = async (cardId: string, payload: CardUpdatePayloadFull) => {
@@ -273,16 +256,17 @@ export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanI
             if (!res.ok) {
                 const err = await res.json();
                 throw new Error(err.error || "Erreur lors de la mise à jour de la carte");
-            } // Carte complète renvoyée par l’API (cf. ton route PUT) 
+            }
             const updatedCardFromApi: CardElement = await res.json();
             const updatedCard: CardElement = {
                 ...updatedCardFromApi,
                 dueDate: updatedCardFromApi.dueDate ? new Date(updatedCardFromApi.dueDate) : null,
             };
-            const finalColumns = kanban.columns.map(col => ({
+            const finalColumns = columns.map(col => ({
                 ...col,
                 cards: col.cards.map(c => (c.id === cardId ? updatedCard : c)),
             }));
+            setColumns(finalColumns);
             updateKanbanColumns(finalColumns);
             setSelectedCard(null);
         } catch (error) {
@@ -293,8 +277,13 @@ export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanI
 
     const handleCardDelete = async (cardId: string) => {
         await fetch(`/api/cards/${cardId}`, { method: "DELETE" });
-        const updatedColumns = kanban.columns.map(col => ({ ...col, cards: col.cards.filter(c => c.id !== cardId), }));
-        updateKanbanColumns(updatedColumns); setSelectedCard(null);
+        const updatedColumns = columns.map(col => ({
+            ...col,
+            cards: col.cards.filter(c => c.id !== cardId),
+        }));
+        setColumns(updatedColumns);
+        updateKanbanColumns(updatedColumns);
+        setSelectedCard(null);
     };
 
     return (
@@ -351,7 +340,7 @@ export default function KanbanBoard({ kanban, updateKanbanColumns, updateKanbanI
                             onDrop={e => onDrop(e, col.id)}
                             style={{ minHeight: '40px' }}
                         >
-                            {col.cards
+                            {(col.cards ?? [])
                                 .slice()
                                 .sort((a, b) => a.order - b.order)
                                 .map(card => {

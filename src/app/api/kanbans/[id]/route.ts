@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-// Récupérer un kanban par ID
+// ---- GET un Kanban complet (colonnes + cartes + détails) ----
 export async function GET(
     _req: Request,
     context: { params: Promise<{ id: string }> }
@@ -12,7 +12,10 @@ export async function GET(
 
         const kanban = await prisma.kanban.findUnique({
             where: { id },
-            include: {
+            select: {
+                id: true,
+                name: true,
+                description: true,
                 columns: {
                     orderBy: { order: "asc" },
                     select: {
@@ -21,7 +24,39 @@ export async function GET(
                         order: true,
                         cards: {
                             orderBy: { order: "asc" },
-                            select: { id: true, title: true, order: true, description: true }
+                            select: {
+                                id: true,
+                                title: true,
+                                order: true,
+                                description: true,
+                                dueDate: true,
+                                labels: {
+                                    select: { id: true, name: true, color: true },
+                                },
+                                assignees: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        email: true,
+                                        role: true,
+                                        avatarUrl: true,
+                                    },
+                                },
+                                comments: {
+                                    orderBy: { createdAt: "asc" },
+                                    select: {
+                                        id: true,
+                                        content: true,
+                                        createdAt: true,
+                                        author: {
+                                            select: { id: true, name: true },
+                                        },
+                                    },
+                                },
+                                attachments: {
+                                    select: { id: true, url: true, filename: true },
+                                },
+                            },
                         },
                     },
                 },
@@ -39,7 +74,7 @@ export async function GET(
     }
 }
 
-// Mettre à jour un kanban
+// ---- PUT mise à jour Kanban ----
 export async function PUT(
     req: Request,
     context: { params: Promise<{ id: string }> }
@@ -60,14 +95,13 @@ export async function PUT(
     }
 }
 
-// Supprimer un kanban
+// ---- DELETE suppression Kanban ----
 export async function DELETE(
     _req: Request,
     context: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await context.params;
-
         await prisma.kanban.delete({ where: { id } });
         return NextResponse.json({ success: true });
     } catch (error) {
