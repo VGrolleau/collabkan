@@ -39,6 +39,13 @@ export async function PUT(
         const updatedCard = await prisma.card.update({
             where: { id },
             data,
+            include: {
+                assignees: true,
+                labels: true,
+                comments: true,
+                attachments: true,
+                checklist: true,
+            },
         });
 
         return NextResponse.json(updatedCard);

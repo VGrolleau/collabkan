@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useEffect, useRef, useState } from "react";
+import { FC, useCallback, useEffect, useRef, useState } from "react";
 import {
     CardElement,
     Column,
@@ -8,6 +8,7 @@ import {
     User,
     Attachment,
     ChecklistItem,
+    CardComment,
 } from "@/types";
 
 import AttachmentsSection from "./AttachmentsSection/AttachmentsSection";
@@ -37,9 +38,9 @@ export type CardUpdatePayloadFull = {
     columnId?: string;
     labels?: { id: string }[];
     assignees?: { id: string }[];
-    dueDate?: string | null; // <-- string ISO pour l'API
+    dueDate?: string | null;
     checklist?: ChecklistItem[];
-    comments?: { content: string; authorId: string }[];
+    comments?: CardComment[];
     attachments?: Attachment[];
 };
 
@@ -71,13 +72,10 @@ const CardModal: FC<CardModalProps> = ({ card, kanbanId, onClose, onSave, onDele
         };
     }, []);
 
-    const handleFieldChange = <K extends keyof CardElement>(
-        field: K,
-        value: CardElement[K]
-    ) => setLocalCard(prev => ({ ...prev, [field]: value }));
+    const handleFieldChange = <K extends keyof CardElement>(field: K, value: CardElement[K]) =>
+        setLocalCard(prev => ({ ...prev, [field]: value }));
 
     const handleSave = async () => {
-        // Assurer que dueDate est un objet Date
         let dueDateIso: string | null = null;
         if (localCard.dueDate) {
             dueDateIso =
@@ -96,7 +94,12 @@ const CardModal: FC<CardModalProps> = ({ card, kanbanId, onClose, onSave, onDele
             dueDate: dueDateIso,
             checklist: localCard.checklist,
             attachments: localCard.attachments,
-            // commentaires laissés de côté si pas authorId
+            comments: localCard.comments.map(c => ({
+                id: c.id,
+                content: c.content,
+                author: typeof c.author === "object" ? c.author.name : c.author,
+                date: c.date,
+            })),
         };
 
         try {
@@ -110,6 +113,16 @@ const CardModal: FC<CardModalProps> = ({ card, kanbanId, onClose, onSave, onDele
     const onOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (e.target === e.currentTarget) onClose();
     };
+
+    const commentsForDisplay: CardComment[] = localCard.comments.map(c => ({
+        ...c,
+        author: typeof c.author === "object" && c.author !== null ? c.author.name : c.author,
+    }));
+
+    const setCommentsStable = useCallback(
+        (newComments: CardComment[]) => handleFieldChange("comments", newComments),
+        []
+    );
 
     return (
         <div className={styles.cardModalOverlay} onClick={onOverlayClick}>
@@ -133,8 +146,8 @@ const CardModal: FC<CardModalProps> = ({ card, kanbanId, onClose, onSave, onDele
                         />
                         <CommentsSection
                             cardId={localCard.id}
-                            comments={localCard.comments}
-                            setComments={newComments => handleFieldChange("comments", newComments)}
+                            comments={commentsForDisplay}
+                            setComments={setCommentsStable}
                         />
                     </div>
                     <div className={styles.rightPane}>

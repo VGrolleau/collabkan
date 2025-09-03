@@ -30,6 +30,13 @@ type DraggingState = {
     fromColId: string | number | null;
 };
 
+type CommentWithAuthor = {
+    id: string;
+    content: string;
+    date?: string;
+    author: string | { id: string; name: string };
+};
+
 export default function KanbanBoard({
     kanban,
     updateKanbanColumns,
@@ -242,8 +249,14 @@ export default function KanbanBoard({
     };
 
     const handleCardClick = (card: CardElement) => {
-        // ✅ Plus besoin de refetch la carte : elle est déjà enrichie
-        setSelectedCard(card);
+        setSelectedCard({
+            ...card,
+            comments: (card.comments as CommentWithAuthor[]).map(c => ({
+                ...c,
+                author: typeof c.author === "object" && c.author !== null ? c.author.name : c.author,
+                date: c.date ? c.date : new Date().toISOString(),
+            }))
+        });
     };
 
     const handleCardSave = async (cardId: string, payload: CardUpdatePayloadFull) => {
