@@ -8,7 +8,7 @@ import { Kanban, Column } from "../types";
 import { User } from "@prisma/client";
 import { fetchKanbanById } from "@/utils/fetchKanbanById";
 import Topbar from "./Topbar";
-import { UserProvider, useUser } from "@/context/UserContext";
+import { useUser } from "@/context/UserContext";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -19,28 +19,35 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
     const { user, refreshUser } = useUser();
 
+    // ⚡ Fetch kanbans + user
     useEffect(() => {
-        async function fetchKanbans() {
+        async function init() {
             setLoading(true);
-            setError(null);
             try {
-                const res = await fetch("/api/kanbans", { credentials: "include" });
-                if (!res.ok) throw new Error("Erreur lors du chargement");
-                const data: Kanban[] = await res.json();
-                setKanbans(data);
-                if (data.length > 0) setSelected(data[0]);
-            } catch (e: unknown) {
+                // 1️⃣ fetch kanbans
+                const resKanbans = await fetch("/api/kanbans", { credentials: "include" });
+                const dataKanbans: Kanban[] = await resKanbans.json();
+                setKanbans(dataKanbans);
+
+                // 3️⃣ fetch le détail du premier kanban seulement une fois
+                if (dataKanbans.length > 0) {
+                    const fullKanban = await fetchKanbanById(dataKanbans[0].id);
+                    if (fullKanban) setSelected(fullKanban);
+                }
+            } catch (e) {
                 setError(e instanceof Error ? e.message : "Erreur inconnue");
             } finally {
                 setLoading(false);
             }
         }
 
-        fetchKanbans();
-        refreshUser(); // on rafraîchit l'utilisateur depuis le contexte
+        init();
     }, []);
 
     const handleSelectKanban = async (kanban: Kanban) => {
+        // fetch seulement si le kanban sélectionné est différent
+        if (selected?.id === kanban.id) return;
+
         const fullKanban = await fetchKanbanById(kanban.id);
         if (fullKanban) setSelected(fullKanban);
         else alert("Impossible de charger le kanban.");
@@ -86,6 +93,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 body: JSON.stringify(updated),
             });
             if (!res.ok) throw new Error("Impossible de modifier le Kanban");
+
+            // ⚡ refresh uniquement ce kanban
             const updatedFullKanban = await fetchKanbanById(selected.id);
             if (updatedFullKanban) {
                 setKanbans(prev => prev.map(k => (k.id === selected.id ? updatedFullKanban : k)));
@@ -121,8 +130,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <section className="board">
                     {isProfilePage ? children : selected ? (
                         <KanbanBoard
-                            key={selected.id}
-                            kanban={selected}
+                            kanban={selected} // plus de key={selected.id}, pas de remount
                             updateKanbanColumns={updateKanbanColumns}
                             updateKanbanInfo={updateKanbanInfo}
                             onDeleteKanban={handleDeleteKanban}

@@ -1,7 +1,8 @@
 "use client";
 
 import { FC, useEffect, useState } from "react";
-import { CardComment, User } from "@/types";
+import { CardComment } from "@/types";
+import { useUser } from "@/context/UserContext";
 import styles from "./CardModal.module.scss";
 
 type CommentsSectionProps = {
@@ -15,23 +16,10 @@ export const CommentsSection: FC<CommentsSectionProps> = ({
     comments,
     setComments,
 }) => {
+    const { user: me } = useUser();
     const [newComment, setNewComment] = useState("");
-    const [me, setMe] = useState<User | null>(null);
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
-
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            try {
-                const res = await fetch("/api/users/me");
-                if (!res.ok) return;
-                const data: User = await res.json();
-                if (alive) setMe(data);
-            } catch { }
-        })();
-        return () => { alive = false; };
-    }, []);
 
     useEffect(() => {
         let alive = true;

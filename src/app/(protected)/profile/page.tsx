@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { User } from "@prisma/client";
+// import { User } from "@prisma/client";
 import { useUser } from "@/context/UserContext";
 import UserList from "@/components/UserList";
 
@@ -96,7 +96,7 @@ export default function ProfilePage() {
                 const err = await res.json();
                 setProfileMessage(err.error || "Erreur lors de la sauvegarde");
             } else {
-                const updatedUser: User = await res.json();
+                const updatedUser = await res.json();
                 setUser(updatedUser); // ⚡ met à jour le contexte → Sidebar se rafraîchit
                 setPassword("");
                 setProfileMessage("Profil mis à jour ✅");
