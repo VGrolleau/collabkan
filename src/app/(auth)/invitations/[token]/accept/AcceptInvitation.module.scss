@@ -1,19 +1,53 @@
+/* src/app/(auth)/invitations/[token]/accept/AcceptInvitation.module.scss */
 .container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 80vh;
-  font-family: sans-serif;
+  font-family: "Inter", sans-serif;
   text-align: center;
-}
+  padding: 24px;
+  gap: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
 
-.error {
-  color: red;
-  font-weight: bold;
-}
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+    color: #333;
+  }
 
-.success {
-  color: green;
-  font-weight: bold;
+  p {
+    font-size: 1rem;
+    color: #555;
+  }
+
+  .error {
+    color: #e74c3c;
+    font-weight: 600;
+    margin-top: 12px;
+  }
+
+  .success {
+    color: #2ecc71;
+    font-weight: 600;
+    margin-top: 12px;
+  }
+
+  button {
+    margin-top: 16px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background: #3a7bf5;
+    color: #fff;
+    font-weight: 500;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #2e64d9;
+    }
+  }
 }

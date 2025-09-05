@@ -44,10 +44,10 @@
   }
 
   a {
-    flex: 1;                 // prend tout l'espace disponible
-    overflow: hidden;        // cache le débordement
-    white-space: nowrap;     // pas de retour à la ligne
-    text-overflow: ellipsis; // affiche "…" si trop long
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     color: var(--link);
     text-decoration: none;
     transition: color 0.2s;
@@ -58,7 +58,7 @@
   }
 
   button {
-    flex-shrink: 0;          // le bouton garde sa taille
+    flex-shrink: 0;
     background: transparent;
     border: none;
     cursor: pointer;

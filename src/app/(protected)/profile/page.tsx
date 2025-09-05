@@ -128,10 +128,10 @@ export default function ProfilePage() {
                 </button>
             </div>
 
-            <div className="profile-row" style={{ gridTemplateColumns: "1fr 1fr 1fr", alignItems: "start" }}>
+            <div className="profile-row">
                 {/* Section Profil */}
                 <div className="profile-card">
-                    <div className="profile-row">
+                    <div className="profile-row" style={{ gridTemplateColumns: "1fr 5fr", alignItems: "center" }}>
                         <div style={{ justifySelf: "center" }}>
                             <div className="avatar lg">
                                 {user.avatarUrl ? (

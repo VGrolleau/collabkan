@@ -34,3 +34,13 @@
   padding: 4px;
   background: var(--list-bg);
 }
+
+/* ========================= RESPONSIVE ========================= */
+@media (max-width: 980px) {
+  .textarea {
+    height: 100px;
+  }
+  .toolbar {
+    gap: 0;
+  }
+}

@@ -136,7 +136,7 @@ input, textarea { width: 100%; background: var(--input-bg); color: var(--text-pr
 /* ========================= PROFILE ========================= */
 .profile { margin: 24px auto; padding: 0 16px; }
 .profile-card { background: var(--list-bg); border: 1px solid var(--border); border-radius: 16px; padding: 18px; box-shadow: var(--shadow-strong); }
-.profile-row { display: grid; grid-template-columns: 1fr 5fr; gap: 16px; align-items: center; }
+.profile-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: start; }
 .profile .avatar.lg { width: 72px; height: 72px; font-size: 24px; border-radius: 50%; }
 .password-strength { height: 6px; width: 100%; background: rgba(255,255,255,.08); border-radius: 4px; margin-top: 4px; overflow: hidden; }
 #passwordStrengthBar { height: 100%; width: 0%; background: #e74c3c; border-radius: 4px; transition: width 0.2s, background 0.2s; }
@@ -154,10 +154,34 @@ input, textarea { width: 100%; background: var(--input-bg); color: var(--text-pr
 .user-list-card button:hover { background: #c0392b; }
 
 /* ========================= RESPONSIVE ========================= */
-@media (max-width: 980px) { .modal { grid-template-columns: 1fr; } }
-@media (max-width: 860px) {
+@media (max-width: 980px) {
+  /* ========================= AUTH VIEW RESPONSIVE ========================= */
+  .auth { padding: 16px; }
+  .auth-card { width: 100%; max-width: 100%; padding: 16px; border-radius: 12px; }
+  .auth-title { font-size: 20px; }
+  .auth-sub { font-size: 14px; margin-bottom: 10px; }
+  .field { margin: 8px 0; gap: 4px; }
+  input, textarea { padding: 8px 10px; font-size: 0.9rem; }
+  .btn { padding: 8px 10px; font-size: 0.875rem; }
+  /* ========================= APP LAYOUT ========================= */
+  .modal { grid-template-columns: 1fr; }
+  .topbar { flex-direction: column;gap: 8px; }
   .layout { grid-template-columns: 1fr; }
-  .sidebar { position: fixed; inset: 0 auto 0 0; width: 280px; transform: translateX(-100%); transition: transform .25s ease-out; z-index: 1002; }
+  .sidebar { position: fixed; top: 0; left: 0; height: 100%; width: 280px; transform: translateX(-100%); transition: transform 0.5s ease-out; z-index: 1002; overflow-y: auto; background: var(--sidebar-bg); }
   .sidebar.show { transform: translateX(0); }
-  .sidebar-toggle { display: block; }
+  .sidebar-toggle { display: block; position: fixed; top: 12px; left: 12px; z-index: 1003; width: 40px; height: 40px; border-radius: 10px; background: var(--accent); color: #fff; border: none; cursor: pointer; box-shadow: var(--shadow-soft); display: flex; align-items: center; justify-content: center; font-size: 22px; transition: transform 0.5s ease-out; }
+  .sidebar-toggle.open { transform: translateX(280px); }
+  .board { flex-direction: column; gap: 12px; padding: 12px; }
+  .board > section { width: 100%; }
+  .board-list { min-width: 100%; max-width: 100%; width: 100%; padding: 10px; }
+  .card { padding: 8px 10px; font-size: 0.9rem; }
+  .assignees .avatar { width: 16px; height: 16px; font-size: 0.6rem; }
+  .labels .label { min-width: 28px; height: 6px; }
+  /* ========================= PROFILE RESPONSIVE ========================= */
+  .profile { padding: 0 12px; margin: 16px auto; }
+  .profile-row { grid-template-columns: 1fr; gap: 12px; }
+  .profile-card { padding: 12px; border-radius: 12px; }
+  .profile .avatar.lg { width: 56px; height: 56px; font-size: 18px; }
+  .password-strength { height: 4px; }
+  .btn { font-size: 0.875rem; padding: 8px 10px; }
 }
