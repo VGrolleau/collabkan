@@ -8,7 +8,7 @@ export default function ThemeToggleButton(props: Props) {
     const { theme, toggleTheme } = useTheme();
 
     return (
-        <button {...props} onClick={toggleTheme}>
+        <button type="button" {...props} onClick={toggleTheme}>
             {theme === 'dark' ? '🌙' : '☀️'}
         </button>
     );
