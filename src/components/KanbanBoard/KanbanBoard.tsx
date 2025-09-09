@@ -251,10 +251,10 @@ export default function KanbanBoard({
     const handleCardClick = (card: CardElement) => {
         setSelectedCard({
             ...card,
-            comments: (card.comments as CommentWithAuthor[]).map(c => ({
+            comments: (card.comments ?? []).map(c => ({
                 ...c,
                 author: typeof c.author === "object" && c.author !== null ? c.author.name : c.author,
-                date: c.date ? c.date : new Date().toISOString(),
+                createdAt: c.createdAt ? c.createdAt : new Date().toISOString(),
             }))
         });
     };

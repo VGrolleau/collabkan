@@ -42,7 +42,7 @@ export type Label = {
 export type CardComment = {
     id: string;
     author: string | { id: string; name: string };
-    date?: string; // ISO string
+    createdAt?: string; // ISO string
     content: string;
 };
 

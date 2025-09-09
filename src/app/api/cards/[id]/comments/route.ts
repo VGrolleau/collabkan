@@ -15,7 +15,7 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
     const mapped = comments.map(c => ({
         id: c.id,
         content: c.content,
-        date: c.createdAt.toISOString(),
+        createdAt: c.createdAt.toISOString(),
         author: c.author.name ?? "Utilisateur",
     }));
 

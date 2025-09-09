@@ -1,14 +1,14 @@
 "use client";
 
-import { FC, useEffect, useState } from "react";
+import React, { FC, useEffect, useState } from "react";
 import { CardComment } from "@/types";
 import { useUser } from "@/context/UserContext";
 import styles from "./CardModal.module.scss";
 
 type CommentsSectionProps = {
     cardId: string;
-    comments: CardComment[];
-    setComments: (comments: CardComment[]) => void;
+    comments: CardComment[]; // affichage (peut venir du parent)
+    setComments: React.Dispatch<React.SetStateAction<CardComment[]>>; // setter stable venant du parent (CardModal)
 };
 
 export const CommentsSection: FC<CommentsSectionProps> = ({
@@ -28,14 +28,20 @@ export const CommentsSection: FC<CommentsSectionProps> = ({
             try {
                 const res = await fetch(`/api/cards/${cardId}/comments`);
                 if (!res.ok) throw new Error("Impossible de charger les commentaires");
-                const dataFromApi: Array<{ id: string; content: string; createdAt: string; author?: { name: string } | string }> = await res.json();
+                const dataFromApi: Array<{ id: string; content: string; createdAt?: string | null; author?: { name?: string } | string | null }> = await res.json();
+                console.log("dataFromApi:", dataFromApi);
+
                 const mapped: CardComment[] = dataFromApi.map(c => ({
                     id: c.id,
                     content: c.content,
                     author: typeof c.author === "string" ? c.author : c.author?.name ?? "Utilisateur",
-                    date: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+                    createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : undefined,
                 }));
-                if (alive) setComments(mapped);
+
+                if (alive) {
+                    // Remplace la liste *uniquement* (on ne touche pas aux dates individuelles ni aux autres champs)
+                    setComments(mapped);
+                }
             } catch (e) {
                 console.error("fetch comments error:", e);
             } finally {
@@ -54,31 +60,48 @@ export const CommentsSection: FC<CommentsSectionProps> = ({
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ content: newComment.trim(), authorId: me.id }),
             });
-            if (!res.ok) throw new Error("Erreur lors de l’ajout du commentaire");
+            if (!res.ok) {
+                const err = await res.json().catch(() => null);
+                throw new Error(err?.error || "Erreur lors de l’ajout du commentaire");
+            }
+
             const savedCommentFromApi = await res.json();
+
+            // Pour le nouveau commentaire : si l'API renvoie createdAt -> on l'utilise,
+            // sinon on met la date courante (uniquement pour CE commentaire).
             const savedComment: CardComment = {
                 id: savedCommentFromApi.id,
                 content: savedCommentFromApi.content,
-                date: new Date(savedCommentFromApi.createdAt).toISOString(),
-                author: savedCommentFromApi.author.name ?? "Moi",
+                createdAt: savedCommentFromApi.createdAt ? new Date(savedCommentFromApi.createdAt).toISOString() : new Date().toISOString(),
+                author:
+                    typeof savedCommentFromApi.author === "string"
+                        ? savedCommentFromApi.author
+                        : savedCommentFromApi.author?.name ?? (me?.name ?? "Moi"),
             };
-            setComments([...comments, savedComment]);
+
+            // Ajout *sans toucher* aux autres commentaires
+            setComments(prev => [...prev, savedComment]);
             setNewComment("");
         } catch (e) {
             console.error("addComment error:", e);
+            alert(e instanceof Error ? e.message : "Erreur lors de l'ajout du commentaire");
         } finally {
             setSending(false);
         }
     };
 
     const deleteComment = async (id: string) => {
-        const prev = [...comments];
-        setComments(comments.filter(c => c.id !== id));
+        // optimiste, mais on fait rollback si erreur
+        setComments(prev => prev.filter(c => c.id !== id));
         try {
-            await fetch(`/api/comments/${id}`, { method: "DELETE" });
+            const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Impossible de supprimer le commentaire");
         } catch (e) {
             console.error("deleteComment error:", e);
-            setComments(prev); // rollback
+            // re-fetch ou rollback côté parent : ici simple re-fetch possible,
+            // mais comme on ne connaît pas l'API exacte, on remet un message d'erreur pour l'instant.
+            alert("Impossible de supprimer le commentaire, réessayez.");
+            // Option : re-fetch en appelant setComments([]) puis forcer un reload via parent
         }
     };
 
@@ -90,12 +113,12 @@ export const CommentsSection: FC<CommentsSectionProps> = ({
             ) : (
                 <ul>
                     {comments.map(comment => (
-                        <li key={comment.id}>
+                        <li key={comment.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <div style={{ flexGrow: 1 }}>
                                 <p style={{ margin: 0 }}>
-                                    <strong>{typeof comment.author === "string" ? comment.author : comment.author.name}</strong>: {comment.content}
+                                    <strong>{typeof comment.author === "string" ? comment.author : comment.author?.name ?? "Utilisateur inconnu"}</strong>: {comment.content}
                                 </p>
-                                <small>{comment.date ? new Date(comment.date).toLocaleString() : "Date inconnue"}</small>
+                                <small>{comment.createdAt ? new Date(comment.createdAt).toLocaleString("fr-FR") : "Date inconnue"}</small>
                             </div>
                             <button onClick={() => deleteComment(comment.id)} title="Supprimer le commentaire" style={{ marginLeft: 8 }}>
                                 🗑️

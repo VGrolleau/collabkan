@@ -8,6 +8,8 @@ type CardUpdateBody = {
     order?: number;
     columnId?: string;
     dueDate?: string | null;
+    labels?: { id: string }[];
+    assignees?: { id: string }[];
 };
 
 function buildCardUpdateInput(body: CardUpdateBody): Prisma.CardUpdateInput {
@@ -21,6 +23,18 @@ function buildCardUpdateInput(body: CardUpdateBody): Prisma.CardUpdateInput {
 
     if (body.columnId !== undefined) {
         data.column = { connect: { id: body.columnId } };
+    }
+
+    if (body.labels !== undefined) {
+        data.labels = {
+            set: body.labels.map(l => ({ id: l.id })),
+        };
+    }
+
+    if (body.assignees !== undefined) {
+        data.assignees = {
+            set: body.assignees.map(a => ({ id: a.id })),
+        };
     }
 
     return data;

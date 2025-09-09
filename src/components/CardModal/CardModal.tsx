@@ -1,11 +1,10 @@
 "use client";
 
-import { FC, useCallback, useEffect, useRef, useState } from "react";
+import React, { FC, useCallback, useEffect, useRef, useState } from "react";
 import {
     CardElement,
     Column,
     Label,
-    User,
     Attachment,
     ChecklistItem,
     CardComment,
@@ -75,30 +74,45 @@ const CardModal: FC<CardModalProps> = ({ card, kanbanId, onClose, onSave, onDele
     const handleFieldChange = <K extends keyof CardElement>(field: K, value: CardElement[K]) =>
         setLocalCard(prev => ({ ...prev, [field]: value }));
 
-    const handleSave = async () => {
-        let dueDateIso: string | null = null;
-        if (localCard.dueDate) {
-            dueDateIso =
-                localCard.dueDate instanceof Date
-                    ? localCard.dueDate.toISOString()
-                    : new Date(localCard.dueDate).toISOString();
-        }
+    const setCommentsDispatch: React.Dispatch<React.SetStateAction<CardComment[]>> = useCallback(
+        (value) => {
+            setLocalCard(prev => {
+                const prevComments = prev.comments ?? [];
+                const nextComments = typeof value === "function"
+                    ? (value as (prev: CardComment[]) => CardComment[])(prevComments)
+                    : value;
+                return { ...prev, comments: nextComments };
+            });
+        },
+        [] // setLocalCard est stable, on peut garder [] ou [setLocalCard] selon lint
+    );
 
+    const commentsForDisplay: CardComment[] = (localCard.comments ?? []).map(c => ({
+        ...c,
+        author: typeof c.author === "object" && c.author !== null ? c.author : (c.author ?? "Utilisateur"),
+    }));
+
+    const handleSave = async () => {
         const payload: CardUpdatePayloadFull = {
             title: localCard.title,
             description: localCard.description,
             order: localCard.order,
             columnId: localCard.columnId,
-            labels: localCard.labels.map(l => ({ id: l.id })),
-            assignees: localCard.assignees.map(u => ({ id: u.id })),
-            dueDate: dueDateIso,
-            checklist: localCard.checklist,
-            attachments: localCard.attachments,
-            comments: localCard.comments.map(c => ({
+            dueDate: localCard.dueDate ? (localCard.dueDate instanceof Date ? localCard.dueDate.toISOString() : new Date(localCard.dueDate).toISOString()) : null,
+            labels: (localCard.labels ?? []).map(l => ({ id: l.id })),
+            assignees: (localCard.assignees ?? []).map(a => ({ id: a.id })),
+            checklist: localCard.checklist ?? [],
+            attachments: localCard.attachments ?? [],
+            comments: (localCard.comments ?? []).map(c => ({
                 id: c.id,
                 content: c.content,
-                author: typeof c.author === "object" ? c.author.name : c.author,
-                date: c.date,
+                // envoyer un author sous forme de string (le backend doit mapper par authorId si nécessaire)
+                author: typeof c.author === "object" && c.author !== null
+                    ? c.author.name
+                    : typeof c.author === "string"
+                        ? c.author
+                        : "Utilisateur",
+                createdAt: c.createdAt,
             })),
         };
 
@@ -107,22 +121,13 @@ const CardModal: FC<CardModalProps> = ({ card, kanbanId, onClose, onSave, onDele
             onClose();
         } catch (error) {
             console.error("Erreur lors de la mise à jour de la carte :", error);
+            alert(error instanceof Error ? error.message : "Erreur inconnue");
         }
     };
 
     const onOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (e.target === e.currentTarget) onClose();
     };
-
-    const commentsForDisplay: CardComment[] = localCard.comments.map(c => ({
-        ...c,
-        author: typeof c.author === "object" && c.author !== null ? c.author.name : c.author,
-    }));
-
-    const setCommentsStable = useCallback(
-        (newComments: CardComment[]) => handleFieldChange("comments", newComments),
-        []
-    );
 
     return (
         <div className={styles.cardModalOverlay} onClick={onOverlayClick}>
@@ -147,7 +152,7 @@ const CardModal: FC<CardModalProps> = ({ card, kanbanId, onClose, onSave, onDele
                         <CommentsSection
                             cardId={localCard.id}
                             comments={commentsForDisplay}
-                            setComments={setCommentsStable}
+                            setComments={setCommentsDispatch}
                         />
                     </div>
                     <div className={styles.rightPane}>
