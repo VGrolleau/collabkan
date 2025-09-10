@@ -44,6 +44,30 @@ export type CardUpdatePayloadFull = {
 };
 
 const CardModal: FC<CardModalProps> = ({ card, kanbanId, onClose, onSave, onDelete }) => {
+    useEffect(() => {
+        const fetchCard = async () => {
+            try {
+                const res = await fetch(`/api/cards/${card.id}`);
+                if (!res.ok) throw new Error("Impossible de charger la carte");
+                const freshCard = await res.json();
+
+                // On fusionne avec la version locale
+                setLocalCard({
+                    ...freshCard,
+                    checklist: freshCard.checklist ?? [],
+                    labels: freshCard.labels ?? [],
+                    attachments: freshCard.attachments ?? [],
+                    assignees: freshCard.assignees ?? [],
+                    comments: freshCard.comments ?? [],
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        fetchCard();
+    }, [card.id]);
+
     const [localCard, setLocalCard] = useState<CardElement>({
         ...card,
         checklist: card.checklist ?? [],

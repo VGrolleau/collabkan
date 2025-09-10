@@ -10,6 +10,11 @@ type CardUpdateBody = {
     dueDate?: string | null;
     labels?: { id: string }[];
     assignees?: { id: string }[];
+    checklist?: {
+        id: string;
+        text: string;
+        done: boolean;
+    }[];
 };
 
 function buildCardUpdateInput(body: CardUpdateBody): Prisma.CardUpdateInput {
@@ -37,7 +42,49 @@ function buildCardUpdateInput(body: CardUpdateBody): Prisma.CardUpdateInput {
         };
     }
 
+    if (body.checklist !== undefined) {
+        data.checklist = {
+            connect: body.checklist.map(i => ({ id: i.id }))
+        };
+    }
+
     return data;
+}
+
+export async function GET(
+    req: Request,
+    context: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await context.params;
+        const card = await prisma.card.findUnique({
+            where: { id },
+            include: {
+                labels: true,
+                assignees: true,
+                comments: {
+                    include: {
+                        author: { select: { id: true, name: true } },
+                    },
+                    orderBy: { createdAt: "asc" },
+                },
+                checklist: true,
+                attachments: true,
+            },
+        });
+
+        if (!card) {
+            return NextResponse.json({ error: "Carte introuvable" }, { status: 404 });
+        }
+
+        return NextResponse.json(card);
+    } catch (err) {
+        console.error("Erreur GET card:", err);
+        return NextResponse.json(
+            { error: "Erreur serveur lors de la récupération de la carte" },
+            { status: 500 }
+        );
+    }
 }
 
 // ---- PUT mise à jour carte ----

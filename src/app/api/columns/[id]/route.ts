@@ -30,6 +30,11 @@ export async function GET(
                     author: cm.author?.name ?? "Inconnu",
                     date: cm.createdAt.toISOString(),
                 })),
+                checklist: c.checklist.map(item => ({
+                    id: item.id,
+                    text: item.text,
+                    done: item.done,
+                })),
             })),
         };
 

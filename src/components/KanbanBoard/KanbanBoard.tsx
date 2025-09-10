@@ -93,6 +93,7 @@ export default function KanbanBoard({
         return closest.element; // null si on doit append en bas
     };
 
+    // 🔹 Desktop DnD
     const onDragStart = (e: React.DragEvent<HTMLDivElement>, card: CardElement, colId: string | number) => {
         dragging.current.card = card;
         dragging.current.fromColId = colId;
